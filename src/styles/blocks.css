@@ -1,0 +1,156 @@
+.block-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 14px;
+  color: #594c3d;
+}
+
+.text-input,
+.text-area,
+.select-input {
+  width: 100%;
+  border: 1px solid #d8c9ac;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  background: #ffffff;
+}
+
+.text-area {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.block-main-content .text-input,
+.block-main-content .text-area {
+  border-color: transparent;
+  background: transparent;
+  padding: 4px 0;
+}
+
+.block-main-content .text-input:focus,
+.block-main-content .text-area:focus {
+  border-color: #d8c9ac;
+  background: #fffdf9;
+  padding: 8px 10px;
+}
+
+.book-heading {
+  margin: 4px 0;
+  line-height: 1.2;
+  color: #2f2518;
+}
+
+.heading-align-left {
+  text-align: left;
+}
+
+.heading-align-center {
+  text-align: center;
+}
+
+.heading-align-right {
+  text-align: right;
+}
+
+.heading-bold {
+  font-weight: 700;
+}
+
+.heading-regular {
+  font-weight: 400;
+}
+
+.heading-italic {
+  font-style: italic;
+}
+
+.heading-roman {
+  font-style: normal;
+}
+
+.heading-inline-input {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+}
+
+.heading-inline-input:focus {
+  border-bottom: 1px solid #d8c9ac;
+}
+
+.book-text {
+  margin: 0;
+  line-height: 1.6;
+  color: #3d3124;
+  white-space: pre-wrap;
+}
+
+.book-image {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 0;
+  display: block;
+}
+
+.editor-layout .book-image {
+  border: 1px solid #e7dbc4;
+}
+
+.book-image.rounded {
+  border-radius: 16px;
+}
+
+.media-frame {
+  max-width: 100%;
+}
+
+.content-width-small {
+  width: min(35%, 280px);
+}
+
+.content-width-medium {
+  width: min(60%, 520px);
+}
+
+.content-width-large {
+  width: min(85%, 900px);
+}
+
+.content-width-full {
+  width: 100%;
+}
+
+.content-align-left {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.content-align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.content-align-right {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+@media (max-width: 900px) {
+  .content-width-small,
+  .content-width-medium,
+  .content-width-large {
+    width: 100%;
+  }
+}
