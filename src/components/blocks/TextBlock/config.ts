@@ -1,4 +1,8 @@
-import { TEXT_BLOCK_TYPE, type TextBlockData } from './types'
+import {
+  DEFAULT_TEXT_SETTINGS,
+  TEXT_BLOCK_TYPE,
+  type TextBlockData,
+} from './types'
 import { createId } from '../../../services/idService'
 
 export function createTextBlock(): TextBlockData {
@@ -8,8 +12,6 @@ export function createTextBlock(): TextBlockData {
     content: {
       text: 'Novo paragrafo',
     },
-    settings: {
-      compact: false,
-    },
+    settings: { ...DEFAULT_TEXT_SETTINGS },
   }
 }

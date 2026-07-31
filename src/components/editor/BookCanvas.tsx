@@ -65,7 +65,12 @@ export function BookCanvas({
         }
       }}
     >
-      <BookTitleBanner title={book.title} editable={mode === 'edit'} onChangeTitle={onUpdateTitle} />
+      <BookTitleBanner
+        title={book.title}
+        editable={mode === 'edit'}
+        onChangeTitle={onUpdateTitle}
+        onFocusTitle={onClearSelection}
+      />
       {book.blocks.length === 0 ? <p className="empty-state">Adicione blocos no painel lateral.</p> : null}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

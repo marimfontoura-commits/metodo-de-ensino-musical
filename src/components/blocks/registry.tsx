@@ -15,6 +15,7 @@ import {
 import {
   TEXT_BLOCK_TYPE,
   TextBlockEdit,
+  TextBlockProperties,
   TextBlockView,
   createTextBlock,
 } from './TextBlock'
@@ -24,6 +25,13 @@ import {
   ImageBlockView,
   createImageBlock,
 } from './ImageBlock'
+import {
+  QUIZ_BLOCK_TYPE,
+  QuizBlockEdit,
+  QuizBlockProperties,
+  QuizBlockView,
+  createQuizBlock,
+} from './QuizBlock'
 
 function castEdit<T extends BookBlock>(
   Component: (props: { block: T; onChange: (next: T) => void }) => ReactElement,
@@ -54,6 +62,7 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
     name: 'Texto',
     icon: 'Tx',
     InlineEditComponent: castEdit(TextBlockEdit),
+    PropertiesComponent: castEdit(TextBlockProperties),
     ViewComponent: castView(TextBlockView),
     create: () => createTextBlock(),
   },
@@ -64,6 +73,15 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
     PropertiesComponent: castEdit(ImageBlockEdit),
     ViewComponent: castView(ImageBlockView),
     create: () => createImageBlock(),
+  },
+  {
+    id: QUIZ_BLOCK_TYPE,
+    name: 'Quiz',
+    icon: 'Qz',
+    InlineEditComponent: castEdit(QuizBlockEdit),
+    PropertiesComponent: castEdit(QuizBlockProperties),
+    ViewComponent: castView(QuizBlockView),
+    create: () => createQuizBlock(),
   },
 ]
 

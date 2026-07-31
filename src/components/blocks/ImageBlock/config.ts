@@ -12,6 +12,7 @@ export function createImageBlock(): ImageBlockData {
     content: {
       url: 'https://picsum.photos/900/400',
       alt: 'Imagem ilustrativa',
+      sourceType: 'url',
     },
     settings: {
       rounded: false,

@@ -1,5 +1,5 @@
 import { normalizeHeadingSettings, type HeadingBlockData } from './types'
-import { HeadingBlockPresentation } from './HeadingBlockPresentation'
+import { HeadingBlockPresentation, resolveHeadingPresentation } from './HeadingBlockPresentation'
 import '../../../styles/blocks.css'
 
 interface HeadingBlockEditProps {
@@ -9,13 +9,14 @@ interface HeadingBlockEditProps {
 
 export function HeadingBlockEdit({ block, onChange }: HeadingBlockEditProps) {
   const settings = normalizeHeadingSettings(block.settings)
+  const presentation = resolveHeadingPresentation(settings)
 
   return (
     <div className="block-content">
       <HeadingBlockPresentation settings={settings}>
         <input
           id={`heading-${block.id}`}
-          className="text-input heading-inline-input"
+          className={`text-input heading-inline-input ${presentation.typographyClassName}`}
           value={block.content.text}
           onChange={(event) =>
             onChange({

@@ -4,9 +4,15 @@ interface BookTitleBannerProps {
   title: string
   editable?: boolean
   onChangeTitle?: (nextTitle: string) => void
+  onFocusTitle?: () => void
 }
 
-export function BookTitleBanner({ title, editable = false, onChangeTitle }: BookTitleBannerProps) {
+export function BookTitleBanner({
+  title,
+  editable = false,
+  onChangeTitle,
+  onFocusTitle,
+}: BookTitleBannerProps) {
   return (
     <header className="book-title-banner">
       <h1
@@ -25,6 +31,11 @@ export function BookTitleBanner({ title, editable = false, onChangeTitle }: Book
         onKeyDown={(event) => {
           if (editable && event.key === 'Enter') {
             event.preventDefault()
+          }
+        }}
+        onFocus={() => {
+          if (editable) {
+            onFocusTitle?.()
           }
         }}
       >

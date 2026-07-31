@@ -1,4 +1,5 @@
 import type { TextBlockData } from './types'
+import { TextBlockPresentation } from './TextBlockPresentation'
 import '../../../styles/blocks.css'
 
 interface TextBlockViewProps {
@@ -6,5 +7,9 @@ interface TextBlockViewProps {
 }
 
 export function TextBlockView({ block }: TextBlockViewProps) {
-  return <p className="book-text">{block.content.text || 'Paragrafo sem texto'}</p>
+  return (
+    <TextBlockPresentation settings={block.settings}>
+      {block.content.text || 'Paragrafo sem texto'}
+    </TextBlockPresentation>
+  )
 }
