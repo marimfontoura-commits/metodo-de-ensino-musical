@@ -9,6 +9,7 @@ import {
   type QuizBlockData,
   type QuizOption,
 } from './types'
+import { EditorIcon } from '../../editor/EditorIcon'
 import { QuizInlineImageEditor } from './QuizInlineImageEditor'
 import { QuizImagePreview } from './QuizImagePreview'
 import '../../../styles/blocks.css'
@@ -232,9 +233,7 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
                         toggleOptionMenu(option.id)
                       }}
                     >
-                      <span className="icon-mark" aria-hidden="true">
-                        &#8942;
-                      </span>
+                      <EditorIcon name="moreVert" className="icon-mark" decorative />
                     </button>
 
                     {openMenuOptionId === option.id ? (
@@ -257,9 +256,7 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
                           }}
                           disabled={index === 0}
                         >
-                          <span className="icon-mark" aria-hidden="true">
-                            &uarr;
-                          </span>
+                          <EditorIcon name="arrowUp" className="icon-mark" decorative />
                           Mover para cima
                         </button>
 
@@ -276,9 +273,7 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
                           }}
                           disabled={index === content.options.length - 1}
                         >
-                          <span className="icon-mark" aria-hidden="true">
-                            &darr;
-                          </span>
+                          <EditorIcon name="arrowDown" className="icon-mark" decorative />
                           Mover para baixo
                         </button>
 
@@ -295,9 +290,7 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
                           }}
                           disabled={content.options.length <= QUIZ_LIMITS.minOptions}
                         >
-                          <span className="icon-mark" aria-hidden="true">
-                            &times;
-                          </span>
+                          <EditorIcon name="delete" className="icon-mark" decorative />
                           Remover alternativa
                         </button>
                       </div>

@@ -6,6 +6,7 @@ import {
   saveImageFileAsLocalSource,
   type ImageSourceContent,
 } from '../imageSource'
+import { EditorIcon } from '../../editor/EditorIcon'
 import { ModalDialog } from '../../editor/ModalDialog'
 
 interface QuizInlineImageEditorProps {
@@ -80,9 +81,7 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
           openDialog()
         }}
       >
-        <span className="icon-mark" aria-hidden="true">
-          &#128247;
-        </span>
+        <EditorIcon name="image" className="icon-mark" decorative />
       </button>
 
       <ModalDialog isOpen={isDialogOpen} title={`Imagem da ${label}`} onClose={closeDialog}>
@@ -99,9 +98,7 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
               closeDialog()
             }}
           >
-            <span className="icon-mark" aria-hidden="true">
-              &times;
-            </span>
+            <EditorIcon name="close" className="icon-mark" decorative />
           </button>
         </div>
 

@@ -32,6 +32,13 @@ import {
   QuizBlockView,
   createQuizBlock,
 } from './QuizBlock'
+import {
+  PIANO_BLOCK_TYPE,
+  PianoBlockEdit,
+  PianoBlockProperties,
+  PianoBlockView,
+  createPianoBlock,
+} from './PianoBlock'
 
 function castEdit<T extends BookBlock>(
   Component: (props: { block: T; onChange: (next: T) => void }) => ReactElement,
@@ -82,6 +89,15 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
     PropertiesComponent: castEdit(QuizBlockProperties),
     ViewComponent: castView(QuizBlockView),
     create: () => createQuizBlock(),
+  },
+  {
+    id: PIANO_BLOCK_TYPE,
+    name: 'Piano',
+    icon: 'Pn',
+    InlineEditComponent: castEdit(PianoBlockEdit),
+    PropertiesComponent: castEdit(PianoBlockProperties),
+    ViewComponent: castView(PianoBlockView),
+    create: () => createPianoBlock(),
   },
 ]
 

@@ -261,8 +261,9 @@
 }
 
 .icon-mark {
-  font-size: 16px;
-  line-height: 1;
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .icon-button {
@@ -578,6 +579,110 @@
   margin-right: 0;
 }
 
+.piano-block {
+  border: 1px solid #e7dbc4;
+  border-radius: 12px;
+  background: #fffdf9;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.piano-keyboard {
+  position: relative;
+  width: 100%;
+  --white-key-count: 14;
+}
+
+.piano-white-keys {
+  display: grid;
+  grid-template-columns: repeat(var(--white-key-count), minmax(0, 1fr));
+  border: 1px solid #d8c9ac;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f6efe2;
+}
+
+.piano-black-keys {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 62%;
+  pointer-events: none;
+}
+
+.piano-key {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.piano-key:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: -2px;
+}
+
+.piano-key-white {
+  height: 180px;
+  background: linear-gradient(180deg, #fffefe 0%, #f8f2e6 100%);
+  border-right: 1px solid #d8c9ac;
+  color: #594c3d;
+  padding-bottom: 8px;
+}
+
+.piano-key-white:last-child {
+  border-right: 0;
+}
+
+.piano-key-black {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: min(28px, calc(100% / var(--white-key-count) * 0.66));
+  height: 112px;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, #3f352a 0%, #1f1810 100%);
+  color: #f6efe2;
+  box-shadow: 0 4px 10px rgba(31, 24, 16, 0.35);
+  z-index: 2;
+  pointer-events: auto;
+  padding-bottom: 6px;
+}
+
+.piano-key.is-highlighted.piano-key-white {
+  background: linear-gradient(180deg, #f7f1e4 0%, #ebdbc1 100%);
+  box-shadow: inset 0 0 0 2px rgba(15, 118, 110, 0.3);
+}
+
+.piano-key.is-highlighted.piano-key-black {
+  background: linear-gradient(180deg, #2f8f86 0%, #14645d 100%);
+}
+
+.piano-key.is-pressed {
+  transform: translateY(1px);
+}
+
+.piano-key.is-pressed.piano-key-black {
+  transform: translateX(-50%) translateY(1px);
+  box-shadow: 0 2px 6px rgba(31, 24, 16, 0.28);
+}
+
+.piano-note-label {
+  font-size: 11px;
+  line-height: 1;
+  user-select: none;
+}
+
+.piano-note-label-black {
+  color: #f5ebd6;
+}
+
 @media (max-width: 900px) {
   .content-width-small,
   .content-width-medium,
@@ -595,5 +700,14 @@
 
   .quiz-inline-size-select {
     width: 100%;
+  }
+
+  .piano-key-white {
+    height: 140px;
+  }
+
+  .piano-key-black {
+    height: 90px;
+    width: min(24px, calc(100% / var(--white-key-count) * 0.66));
   }
 }
