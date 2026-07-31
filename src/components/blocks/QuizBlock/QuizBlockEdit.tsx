@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { createId } from '../../../services/idService'
 import { hasRenderableImage } from '../imageSource'
 import {
@@ -21,6 +22,31 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
   const content = normalizeQuizContent(block.content)
   const settings = normalizeQuizSettings(block.settings)
   const hasVisualAlternatives = content.options.some((option) => hasRenderableImage(option.image))
+  const [openMenuOptionId, setOpenMenuOptionId] = useState('')
+
+  useEffect(() => {
+    if (!openMenuOptionId) {
+      return
+    }
+
+    function handleDocumentClick() {
+      setOpenMenuOptionId('')
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpenMenuOptionId('')
+      }
+    }
+
+    document.addEventListener('click', handleDocumentClick)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('click', handleDocumentClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [openMenuOptionId])
 
   function updateContent(nextContent: Partial<QuizBlockData['content']>) {
     onChange({
@@ -100,6 +126,14 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
     const [item] = nextOptions.splice(index, 1)
     nextOptions.splice(targetIndex, 0, item)
     updateOptions(nextOptions)
+  }
+
+  function toggleOptionMenu(optionId: string) {
+    setOpenMenuOptionId((current) => (current === optionId ? '' : optionId))
+  }
+
+  function closeOptionMenu() {
+    setOpenMenuOptionId('')
   }
 
   return (
@@ -186,36 +220,89 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
                     value={option.image}
                     onChange={(next) => updateOption(option.id, { image: next })}
                   />
-                  <button
-                    type="button"
-                    className="icon-button"
-                    title="Mover alternativa para cima"
-                    aria-label="Mover alternativa para cima"
-                    onClick={() => moveOption(option.id, -1)}
-                    disabled={index === 0}
-                  >
-                    ^
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    title="Mover alternativa para baixo"
-                    aria-label="Mover alternativa para baixo"
-                    onClick={() => moveOption(option.id, 1)}
-                    disabled={index === content.options.length - 1}
-                  >
-                    v
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    title="Remover alternativa"
-                    aria-label="Remover alternativa"
-                    onClick={() => removeOption(option.id)}
-                    disabled={content.options.length <= QUIZ_LIMITS.minOptions}
-                  >
-                    x
-                  </button>
+                  <div className="quiz-option-secondary-actions">
+                    <button
+                      type="button"
+                      className="icon-button"
+                      title="Mais opcoes"
+                      aria-label="Mais opcoes da alternativa"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        toggleOptionMenu(option.id)
+                      }}
+                    >
+                      <span className="icon-mark" aria-hidden="true">
+                        &#8942;
+                      </span>
+                    </button>
+
+                    {openMenuOptionId === option.id ? (
+                      <div
+                        className="quiz-option-menu"
+                        role="menu"
+                        aria-label={`Menu da alternativa ${index + 1}`}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          className="quiz-option-menu-item"
+                          title="Mover para cima"
+                          aria-label="Mover alternativa para cima"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            moveOption(option.id, -1)
+                            closeOptionMenu()
+                          }}
+                          disabled={index === 0}
+                        >
+                          <span className="icon-mark" aria-hidden="true">
+                            &uarr;
+                          </span>
+                          Mover para cima
+                        </button>
+
+                        <button
+                          type="button"
+                          className="quiz-option-menu-item"
+                          title="Mover para baixo"
+                          aria-label="Mover alternativa para baixo"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            moveOption(option.id, 1)
+                            closeOptionMenu()
+                          }}
+                          disabled={index === content.options.length - 1}
+                        >
+                          <span className="icon-mark" aria-hidden="true">
+                            &darr;
+                          </span>
+                          Mover para baixo
+                        </button>
+
+                        <button
+                          type="button"
+                          className="quiz-option-menu-item"
+                          title="Remover alternativa"
+                          aria-label="Remover alternativa"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            removeOption(option.id)
+                            closeOptionMenu()
+                          }}
+                          disabled={content.options.length <= QUIZ_LIMITS.minOptions}
+                        >
+                          <span className="icon-mark" aria-hidden="true">
+                            &times;
+                          </span>
+                          Remover alternativa
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 

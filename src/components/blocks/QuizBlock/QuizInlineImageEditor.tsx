@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import {
   ACCEPTED_IMAGE_FILE_INPUT,
@@ -6,6 +6,7 @@ import {
   saveImageFileAsLocalSource,
   type ImageSourceContent,
 } from '../imageSource'
+import { ModalDialog } from '../../editor/ModalDialog'
 
 interface QuizInlineImageEditorProps {
   idPrefix: string
@@ -17,9 +18,10 @@ interface QuizInlineImageEditorProps {
 export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: QuizInlineImageEditorProps) {
   const image = normalizeImageSourceContent(value)
   const hasImage = image.url.trim() !== '' || image.localAssetId.trim() !== ''
-  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [isSavingFile, setIsSavingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -48,6 +50,18 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
     event.target.value = ''
   }
 
+  function openDialog() {
+    if (!hasImage) {
+      onChange({ sourceType: 'url', url: '', alt: '' })
+    }
+
+    setIsDialogOpen(true)
+  }
+
+  function closeDialog() {
+    setIsDialogOpen(false)
+  }
+
   return (
     <div
       className="quiz-inline-image-control"
@@ -63,24 +77,35 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
-
-          if (!hasImage) {
-            onChange({ sourceType: 'url', url: '', alt: '' })
-          }
-
-          setIsPanelOpen((current) => !current)
+          openDialog()
         }}
       >
-        Img
+        <span className="icon-mark" aria-hidden="true">
+          &#128247;
+        </span>
       </button>
 
-      {isPanelOpen ? (
-        <div
-          className="quiz-inline-image-panel"
-          onClick={(event) => {
-            event.stopPropagation()
-          }}
-        >
+      <ModalDialog isOpen={isDialogOpen} title={`Imagem da ${label}`} onClose={closeDialog}>
+        <div className="quiz-modal-header">
+          <h3 className="quiz-modal-title">Imagem da {label}</h3>
+          <button
+            type="button"
+            className="icon-button"
+            title="Fechar editor de imagem"
+            aria-label="Fechar editor de imagem"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              closeDialog()
+            }}
+          >
+            <span className="icon-mark" aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+
+        <div className="quiz-inline-image-panel">
           <label className="field-label" htmlFor={`${idPrefix}-source`}>
             Origem da imagem
           </label>
@@ -140,11 +165,31 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
               </label>
               <input
                 id={`${idPrefix}-file`}
-                className="text-input"
+                ref={fileInputRef}
+                className="file-input-hidden"
                 type="file"
                 accept={ACCEPTED_IMAGE_FILE_INPUT}
                 onChange={handleFileChange}
               />
+              <input
+                className="text-input"
+                readOnly
+                value={image.localFileName || 'Nenhum arquivo selecionado.'}
+                aria-label="Arquivo selecionado"
+              />
+              <button
+                type="button"
+                className="ghost-button"
+                title="Escolher arquivo local"
+                aria-label="Escolher arquivo local"
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  fileInputRef.current?.click()
+                }}
+              >
+                Escolher arquivo local
+              </button>
               <p className="field-help">
                 {image.localFileName ? `Arquivo atual: ${image.localFileName}` : 'Nenhum arquivo selecionado.'}
               </p>
@@ -178,7 +223,7 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
                 event.stopPropagation()
                 onChange(undefined)
                 setUploadError('')
-                setIsPanelOpen(false)
+                closeDialog()
               }}
             >
               Remover imagem
@@ -186,11 +231,11 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
             <button
               type="button"
               className="ghost-button"
-              title="Fechar painel"
+              title="Fechar modal"
               onClick={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
-                setIsPanelOpen(false)
+                closeDialog()
               }}
             >
               Fechar
@@ -199,7 +244,7 @@ export function QuizInlineImageEditor({ idPrefix, label, value, onChange }: Quiz
 
           {uploadError ? <p className="field-error">{uploadError}</p> : null}
         </div>
-      ) : null}
+      </ModalDialog>
     </div>
   )
 }
