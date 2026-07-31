@@ -4,6 +4,7 @@ import type { BookBlock, EditorMode } from '../../models/book'
 import {
   BlockInlineEditRenderer,
   BlockViewRenderer,
+  canBlockAttachToQuiz,
   getBlockLabel,
   hasInlineEditing,
 } from '../blocks/registry'
@@ -11,6 +12,7 @@ import '../../styles/editor.css'
 
 interface SortableBlockItemProps {
   block: BookBlock
+  allBlocks: BookBlock[]
   isSelected: boolean
   mode: EditorMode
   onSelect: () => void
@@ -23,6 +25,7 @@ interface SortableBlockItemProps {
 
 export function SortableBlockItem({
   block,
+  allBlocks,
   isSelected,
   mode,
   onSelect,
@@ -32,9 +35,17 @@ export function SortableBlockItem({
   onMoveUp,
   onMoveDown,
 }: SortableBlockItemProps) {
+  const canAttachToQuiz = canBlockAttachToQuiz(block.type)
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
     disabled: mode === 'preview',
+    data: {
+      kind: 'block',
+      blockId: block.id,
+      canAttachToQuiz,
+      source: 'root',
+    },
   })
 
   const style = {
@@ -84,9 +95,9 @@ export function SortableBlockItem({
 
       <div className="block-main-content">
         {showInlineEditor ? (
-          <BlockInlineEditRenderer block={block} onChange={onChange} />
+          <BlockInlineEditRenderer block={block} onChange={onChange} allBlocks={allBlocks} />
         ) : (
-          <BlockViewRenderer block={block} />
+          <BlockViewRenderer block={block} allBlocks={allBlocks} />
         )}
       </div>
     </article>

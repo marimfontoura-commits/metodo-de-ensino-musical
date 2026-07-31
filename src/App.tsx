@@ -4,14 +4,17 @@ import { TopBar, SidePanel, BookCanvas, BookReader, PropertiesInspector } from '
 import type { BlockType, Book, BookBlock, EditorMode } from './models/book'
 import { createInitialBook, createNewBlock } from './services/bookFactory'
 import {
+  attachBlockToQuizSlot,
   cloneBlock,
   insertBlock,
+  moveAttachedBlockToRoot,
   moveBlockDown,
   moveBlockUp,
   removeBlock,
   reorderBlocks,
   updateBlock,
 } from './services/bookMutations'
+import type { QuizDropTarget } from './components/blocks/QuizBlock/quizAttachmentDnd'
 import { loadBook, saveBook } from './services/bookStorageService'
 
 function App() {
@@ -64,6 +67,14 @@ function App() {
     setBook((current) => reorderBlocks(current, activeId, overId))
   }
 
+  function handleAttachBlockToQuizSlot(blockId: string, target: QuizDropTarget) {
+    setBook((current) => attachBlockToQuizSlot(current, blockId, target))
+  }
+
+  function handleMoveAttachedBlockToRoot(blockId: string, overRootBlockId?: string) {
+    setBook((current) => moveAttachedBlockToRoot(current, blockId, overRootBlockId))
+  }
+
   return (
     <div className="editor-shell">
       <TopBar mode={mode} onSetMode={setMode} />
@@ -99,6 +110,8 @@ function App() {
               onMoveBlockUp={handleMoveBlockUp}
               onMoveBlockDown={handleMoveBlockDown}
               onReorderBlocks={handleReorderBlocks}
+              onAttachBlockToQuizSlot={handleAttachBlockToQuizSlot}
+              onMoveAttachedBlockToRoot={handleMoveAttachedBlockToRoot}
             />
           </section>
 

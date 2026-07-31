@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactElement } from 'react'
 import { createId } from '../../../services/idService'
 import { hasRenderableImage } from '../imageSource'
 import {
@@ -9,6 +10,9 @@ import {
   type QuizBlockData,
   type QuizOption,
 } from './types'
+import { createOptionSlotDropId, createQuestionSlotDropId } from './quizAttachmentDnd'
+import { QuizAttachmentDraggable } from './QuizAttachmentDraggable'
+import { QuizAttachmentDropZone } from './QuizAttachmentDropZone'
 import { EditorIcon } from '../../editor/EditorIcon'
 import { QuizInlineImageEditor } from './QuizInlineImageEditor'
 import { QuizImagePreview } from './QuizImagePreview'
@@ -17,9 +21,10 @@ import '../../../styles/blocks.css'
 interface QuizBlockEditProps {
   block: QuizBlockData
   onChange: (next: QuizBlockData) => void
+  renderQuizAttachment?: (blockId: string) => ReactElement | null
 }
 
-export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
+export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlockEditProps) {
   const content = normalizeQuizContent(block.content)
   const settings = normalizeQuizSettings(block.settings)
   const hasVisualAlternatives = content.options.some((option) => hasRenderableImage(option.image))
@@ -137,6 +142,9 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
     setOpenMenuOptionId('')
   }
 
+  const questionAttachment =
+    content.questionBlockId && renderQuizAttachment ? renderQuizAttachment(content.questionBlockId) : null
+
   return (
     <section className="quiz-block editing" aria-labelledby={`quiz-question-${block.id}`}>
       <div className="quiz-question-editor-row">
@@ -185,6 +193,18 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
         className={`quiz-question-image quiz-question-image-size-${settings.questionImageSize}`}
       />
 
+      <QuizAttachmentDropZone
+        dropId={createQuestionSlotDropId(block.id)}
+        title="Slot de recurso da pergunta"
+        currentBlockId={content.questionBlockId}
+      >
+        {questionAttachment && content.questionBlockId ? (
+          <QuizAttachmentDraggable blockId={content.questionBlockId} canAttachToQuiz>
+            {questionAttachment}
+          </QuizAttachmentDraggable>
+        ) : null}
+      </QuizAttachmentDropZone>
+
       <div className={hasVisualAlternatives ? 'quiz-options has-images' : 'quiz-options'}>
         {content.options.map((option, index) => (
           <label
@@ -205,6 +225,20 @@ export function QuizBlockEdit({ block, onChange }: QuizBlockEditProps) {
             />
 
             <span className="quiz-option-content">
+              <QuizAttachmentDropZone
+                dropId={createOptionSlotDropId(block.id, option.id)}
+                title={`Slot de recurso da alternativa ${index + 1}`}
+                currentBlockId={option.blockId}
+              >
+                {option.blockId && renderQuizAttachment ? (
+                  <div className="quiz-option-attachment-slot">
+                    <QuizAttachmentDraggable blockId={option.blockId} canAttachToQuiz>
+                      {renderQuizAttachment(option.blockId)}
+                    </QuizAttachmentDraggable>
+                  </div>
+                ) : null}
+              </QuizAttachmentDropZone>
+
               <div className="quiz-option-edit-row">
                 <textarea
                   className="quiz-inline-option-input"

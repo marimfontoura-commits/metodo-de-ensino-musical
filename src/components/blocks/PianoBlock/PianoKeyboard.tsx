@@ -8,6 +8,7 @@ interface PianoKeyboardProps {
   showNoteNames: boolean
   highlightedNoteIds: Set<string>
   pressedNoteIds?: Set<string>
+  interactive?: boolean
   onPress: (noteId: string) => void
 }
 
@@ -36,6 +37,7 @@ export function PianoKeyboard({
   showNoteNames,
   highlightedNoteIds,
   pressedNoteIds,
+  interactive = true,
   onPress,
 }: PianoKeyboardProps) {
   const activePressed = pressedNoteIds ?? new Set<string>()
@@ -43,15 +45,23 @@ export function PianoKeyboard({
   const blackKeys = keys.filter((key) => key.isBlack)
 
   return (
-    <div className="piano-keyboard" style={{ '--white-key-count': totalWhites } as CSSProperties}>
+    <div
+      className={interactive ? 'piano-keyboard' : 'piano-keyboard piano-keyboard-static'}
+      style={{ '--white-key-count': totalWhites } as CSSProperties}
+    >
       <div className="piano-white-keys">
         {whiteKeys.map((key) => (
           <button
             key={key.noteId}
             type="button"
             className={getKeyClassName(false, key.noteId, highlightedNoteIds, activePressed)}
-            onClick={() => onPress(key.noteId)}
+            onClick={() => {
+              if (interactive) {
+                onPress(key.noteId)
+              }
+            }}
             aria-label={`Nota ${key.noteId}`}
+            disabled={!interactive}
           >
             {showNoteNames ? <span className="piano-note-label">{getPitchClass(key.noteId)}</span> : null}
           </button>
@@ -65,8 +75,13 @@ export function PianoKeyboard({
             type="button"
             className={getKeyClassName(true, key.noteId, highlightedNoteIds, activePressed)}
             style={{ left: `${key.blackLeftPercent ?? 0}%` }}
-            onClick={() => onPress(key.noteId)}
+            onClick={() => {
+              if (interactive) {
+                onPress(key.noteId)
+              }
+            }}
             aria-label={`Nota ${key.noteId}`}
+            disabled={!interactive}
           >
             {showNoteNames ? <span className="piano-note-label piano-note-label-black">{getPitchClass(key.noteId)}</span> : null}
           </button>

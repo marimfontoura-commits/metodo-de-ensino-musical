@@ -274,6 +274,13 @@ body {
   gap: 12px;
 }
 
+.root-drop-marker {
+  min-height: 26px;
+  border: 1px dashed #d8c9ac;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
 .book-block {
   border: 1px solid var(--line);
   border-radius: 10px;

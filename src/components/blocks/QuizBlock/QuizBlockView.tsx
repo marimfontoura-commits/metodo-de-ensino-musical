@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import type { ReactElement } from 'react'
 import { hasRenderableImage } from '../imageSource'
 import {
   getQuizOptionLabel,
@@ -7,11 +8,15 @@ import {
   type NormalizedQuizOption,
   type QuizBlockData,
 } from './types'
+import { createOptionSlotDropId, createQuestionSlotDropId } from './quizAttachmentDnd'
+import { QuizAttachmentDraggable } from './QuizAttachmentDraggable'
+import { QuizAttachmentDropZone } from './QuizAttachmentDropZone'
 import { QuizImagePreview } from './QuizImagePreview'
 import '../../../styles/blocks.css'
 
 interface QuizBlockViewProps {
   block: QuizBlockData
+  renderQuizAttachment?: (blockId: string) => ReactElement | null
 }
 
 type AttemptStatus = 'idle' | 'correct' | 'incorrect'
@@ -80,7 +85,7 @@ function QuizOptionChoice({
   )
 }
 
-export function QuizBlockView({ block }: QuizBlockViewProps) {
+export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProps) {
   const content = useMemo(() => normalizeQuizContent(block.content), [block.content])
   const settings = useMemo(() => normalizeQuizSettings(block.settings), [block.settings])
   const hasVisualAlternatives = useMemo(
@@ -94,6 +99,9 @@ export function QuizBlockView({ block }: QuizBlockViewProps) {
   const rootRef = useRef<HTMLElement | null>(null)
   const feedbackId = useId()
   const groupName = `quiz-${block.id}`
+  const questionAttachment =
+    content.questionBlockId && renderQuizAttachment ? renderQuizAttachment(content.questionBlockId) : null
+  const shouldShowQuizDropZones = !isReaderMode
 
   useEffect(() => {
     setSelectedOptionId('')
@@ -142,21 +150,58 @@ export function QuizBlockView({ block }: QuizBlockViewProps) {
           className={`quiz-question-image quiz-question-image-size-${settings.questionImageSize}`}
         />
 
+        {shouldShowQuizDropZones ? (
+          <QuizAttachmentDropZone
+            dropId={createQuestionSlotDropId(block.id)}
+            title="Slot de recurso da pergunta"
+            currentBlockId={content.questionBlockId}
+          >
+            {questionAttachment && content.questionBlockId ? (
+              <QuizAttachmentDraggable blockId={content.questionBlockId} canAttachToQuiz>
+                {questionAttachment}
+              </QuizAttachmentDraggable>
+            ) : null}
+          </QuizAttachmentDropZone>
+        ) : questionAttachment ? (
+          <div className="quiz-attachment-slot">{questionAttachment}</div>
+        ) : null}
+
         <div className={hasVisualAlternatives ? 'quiz-options has-images' : 'quiz-options'}>
           {content.options.map((option, index) => (
-            <QuizOptionChoice
-              key={option.id}
-              blockId={block.id}
-              option={option}
-              index={index}
-              optionImageSize={settings.optionImageSize}
-              optionImageFit={settings.optionImageFit}
-              groupName={groupName}
-              selectedOptionId={selectedOptionId}
-              isReaderMode={isReaderMode}
-              isLockedAfterCheck={isLockedAfterCheck}
-              onSelect={setSelectedOptionId}
-            />
+            <div key={option.id} className="quiz-option-with-attachment">
+              {shouldShowQuizDropZones ? (
+                <QuizAttachmentDropZone
+                  dropId={createOptionSlotDropId(block.id, option.id)}
+                  title={`Slot de recurso da alternativa ${index + 1}`}
+                  currentBlockId={option.blockId}
+                >
+                  {option.blockId && renderQuizAttachment ? (
+                    <div className="quiz-option-attachment-slot">
+                      <QuizAttachmentDraggable blockId={option.blockId} canAttachToQuiz>
+                        {renderQuizAttachment(option.blockId)}
+                      </QuizAttachmentDraggable>
+                    </div>
+                  ) : null}
+                </QuizAttachmentDropZone>
+              ) : option.blockId && renderQuizAttachment ? (
+                <div className="quiz-attachment-slot quiz-option-attachment-slot">
+                  {renderQuizAttachment(option.blockId)}
+                </div>
+              ) : null}
+
+              <QuizOptionChoice
+                blockId={block.id}
+                option={option}
+                index={index}
+                optionImageSize={settings.optionImageSize}
+                optionImageFit={settings.optionImageFit}
+                groupName={groupName}
+                selectedOptionId={selectedOptionId}
+                isReaderMode={isReaderMode}
+                isLockedAfterCheck={isLockedAfterCheck}
+                onSelect={setSelectedOptionId}
+              />
+            </div>
           ))}
         </div>
       </fieldset>

@@ -23,6 +23,7 @@ export function createQuizBlock(): QuizBlockData {
     content: {
       question: 'Nova pergunta',
       questionImage: undefined,
+      questionBlockId: undefined,
       options,
       correctOptionId: options[0].id,
       successFeedback: 'Resposta correta! Muito bem.',

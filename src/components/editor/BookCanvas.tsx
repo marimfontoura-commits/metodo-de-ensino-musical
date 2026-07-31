@@ -1,6 +1,7 @@
 import {
   DndContext,
   PointerSensor,
+  useDroppable,
   closestCenter,
   useSensor,
   useSensors,
@@ -11,6 +12,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import type { Book, BookBlock, EditorMode } from '../../models/book'
+import { canBlockAttachToQuiz } from '../blocks/registry'
+import { QUIZ_BLOCK_TYPE, normalizeQuizContent } from '../blocks/QuizBlock'
+import {
+  ROOT_DROP_ZONE_ID,
+  parseQuizDropTarget,
+  type QuizDropTarget,
+} from '../blocks/QuizBlock/quizAttachmentDnd'
+import { getRootBlocks } from '../blocks/quizAttachmentSlots'
 import { SortableBlockItem } from './SortableBlockItem'
 import { BookTitleBanner } from './BookTitleBanner'
 import '../../styles/editor.css'
@@ -28,6 +37,8 @@ interface BookCanvasProps {
   onMoveBlockUp: (blockId: string) => void
   onMoveBlockDown: (blockId: string) => void
   onReorderBlocks: (activeId: string, overId: string) => void
+  onAttachBlockToQuizSlot: (blockId: string, target: QuizDropTarget) => void
+  onMoveAttachedBlockToRoot: (blockId: string, overRootBlockId?: string) => void
 }
 
 export function BookCanvas({
@@ -43,16 +54,81 @@ export function BookCanvas({
   onMoveBlockUp,
   onMoveBlockDown,
   onReorderBlocks,
+  onAttachBlockToQuizSlot,
+  onMoveAttachedBlockToRoot,
 }: BookCanvasProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const rootBlocks = getRootBlocks(book.blocks)
+  const { setNodeRef: setRootDropRef } = useDroppable({
+    id: ROOT_DROP_ZONE_ID,
+    data: {
+      kind: 'root-drop-zone',
+    },
+  })
+
+  function getQuizSlotOccupant(target: QuizDropTarget): string | undefined {
+    const quizBlock = book.blocks.find((block) => block.id === target.quizBlockId && block.type === QUIZ_BLOCK_TYPE)
+    if (!quizBlock) {
+      return undefined
+    }
+
+    const content = normalizeQuizContent(quizBlock.content)
+    if (target.kind === 'question') {
+      return content.questionBlockId
+    }
+
+    return content.options.find((option) => option.id === target.optionId)?.blockId
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    if (!over || active.id === over.id) {
+    if (!over) {
       return
     }
 
-    onReorderBlocks(String(active.id), String(over.id))
+    const activeId = String(active.id)
+    const overId = String(over.id)
+    const activeBlock = book.blocks.find((block) => block.id === activeId)
+    if (!activeBlock) {
+      return
+    }
+
+    const overQuizTarget = parseQuizDropTarget(overId)
+    if (overQuizTarget) {
+      if (!canBlockAttachToQuiz(activeBlock.type)) {
+        return
+      }
+
+      const occupant = getQuizSlotOccupant(overQuizTarget)
+      if (occupant && occupant !== activeId) {
+        return
+      }
+
+      onAttachBlockToQuizSlot(activeId, overQuizTarget)
+      return
+    }
+
+    if (overId === ROOT_DROP_ZONE_ID) {
+      onMoveAttachedBlockToRoot(activeId)
+      return
+    }
+
+    if (activeId === overId) {
+      return
+    }
+
+    const overIsRootBlock = rootBlocks.some((block) => block.id === overId)
+    if (!overIsRootBlock) {
+      return
+    }
+
+    const activeIsRootBlock = rootBlocks.some((block) => block.id === activeId)
+    if (activeIsRootBlock) {
+      onReorderBlocks(activeId, overId)
+      return
+    }
+
+    onMoveAttachedBlockToRoot(activeId, overId)
   }
 
   return (
@@ -71,10 +147,10 @@ export function BookCanvas({
         onChangeTitle={onUpdateTitle}
         onFocusTitle={onClearSelection}
       />
-      {book.blocks.length === 0 ? <p className="empty-state">Adicione blocos no painel lateral.</p> : null}
+      {rootBlocks.length === 0 ? <p className="empty-state">Adicione blocos no painel lateral.</p> : null}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={book.blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={rootBlocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>
           <div
             className="blocks-list"
             onClick={(event) => {
@@ -83,10 +159,11 @@ export function BookCanvas({
               }
             }}
           >
-            {book.blocks.map((block) => (
+            {rootBlocks.map((block) => (
               <SortableBlockItem
                 key={block.id}
                 block={block}
+                allBlocks={book.blocks}
                 mode={mode}
                 isSelected={selectedBlockId === block.id}
                 onSelect={() => onSelectBlock(block.id)}
@@ -97,6 +174,12 @@ export function BookCanvas({
                 onMoveDown={() => onMoveBlockDown(block.id)}
               />
             ))}
+
+            <div
+              ref={setRootDropRef}
+              className="root-drop-marker"
+              aria-label="Area para soltar bloco na raiz"
+            />
           </div>
         </SortableContext>
       </DndContext>

@@ -1,8 +1,4 @@
-import {
-  PIANO_FIRST_NOTE_OPTIONS,
-  clampPianoOctaveCount,
-  normalizePianoFirstNote,
-} from '../../../music/piano'
+import { clampPianoOctaveCount } from '../../../music/piano'
 import { normalizePianoContent, type PianoBlockData } from './types'
 import '../../../styles/blocks.css'
 
@@ -42,26 +38,6 @@ export function PianoBlockProperties({ block, onChange }: PianoBlockPropertiesPr
         <option value={1}>1 oitava</option>
         <option value={2}>2 oitavas</option>
         <option value={3}>3 oitavas</option>
-      </select>
-
-      <label className="field-label" htmlFor={`piano-first-note-${block.id}`}>
-        Primeira nota
-      </label>
-      <select
-        id={`piano-first-note-${block.id}`}
-        className="select-input"
-        value={content.firstNote}
-        onChange={(event) =>
-          updateContent({
-            firstNote: normalizePianoFirstNote(event.target.value, content.firstNote),
-          })
-        }
-      >
-        {PIANO_FIRST_NOTE_OPTIONS.map((noteId) => (
-          <option key={noteId} value={noteId}>
-            {noteId}
-          </option>
-        ))}
       </select>
 
       <label className="field-label" htmlFor={`piano-show-notes-${block.id}`}>

@@ -12,17 +12,20 @@ export interface QuizOption {
   id: string
   text?: string
   image?: ImageSourceContent
+  blockId?: string
 }
 
 export interface NormalizedQuizOption {
   id: string
   text: string
   image: NormalizedImageSourceContent
+  blockId?: string
 }
 
 export interface QuizBlockContent {
   question: string
   questionImage?: ImageSourceContent
+  questionBlockId?: string
   options: QuizOption[]
   correctOptionId: string
   successFeedback: string
@@ -32,6 +35,7 @@ export interface QuizBlockContent {
 export interface NormalizedQuizBlockContent {
   question: string
   questionImage: NormalizedImageSourceContent
+  questionBlockId?: string
   options: NormalizedQuizOption[]
   correctOptionId: string
   successFeedback: string
@@ -58,6 +62,15 @@ export interface QuizBlockData extends BookBlock {
   type: typeof QUIZ_BLOCK_TYPE
   content: QuizBlockContent
   settings: QuizBlockSettings
+}
+
+function normalizeAttachmentBlockId(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
 }
 
 export const DEFAULT_QUIZ_SETTINGS: NormalizedQuizBlockSettings = {
@@ -88,10 +101,11 @@ export function normalizeQuizOptions(value: unknown): QuizOption[] {
           id,
           text: `Alternativa ${String.fromCharCode(65 + index)}`,
           image,
+          blockId: normalizeAttachmentBlockId(raw.blockId),
         }
       }
 
-      return { id, text, image }
+      return { id, text, image, blockId: normalizeAttachmentBlockId(raw.blockId) }
     })
     .filter((item) => item.id)
     .slice(0, QUIZ_MAX_OPTIONS)
@@ -106,6 +120,7 @@ export function normalizeQuizOptions(value: unknown): QuizOption[] {
       id: toLegacyOptionId(i),
       text: `Alternativa ${String.fromCharCode(65 + i)}`,
       image: normalizeImageSourceContent(undefined),
+      blockId: undefined,
     })
   }
 
@@ -123,6 +138,7 @@ export function normalizeQuizOption(option: QuizOption, index: number): Normaliz
     id: option.id,
     text,
     image,
+    blockId: normalizeAttachmentBlockId(option.blockId),
   }
 }
 
@@ -141,6 +157,7 @@ export function normalizeQuizContent(value: unknown): NormalizedQuizBlockContent
   return {
     question: typeof raw.question === 'string' ? raw.question : 'Nova pergunta',
     questionImage: normalizeImageSourceContent(raw.questionImage),
+    questionBlockId: normalizeAttachmentBlockId(raw.questionBlockId),
     options,
     correctOptionId: validCorrectId,
     successFeedback:
