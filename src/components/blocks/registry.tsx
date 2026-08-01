@@ -38,6 +38,9 @@ import {
   PianoBlockEdit,
   PianoBlockProperties,
   PianoBlockQuizAttachment,
+  PianoBlockQuizAttachmentEdit,
+  PianoBlockInteractiveResponse,
+  isPianoInteractiveResponseValid,
   PianoBlockView,
   createPianoBlock,
 } from './PianoBlock'
@@ -48,14 +51,37 @@ function castEdit<T extends BookBlock>(
     onChange: (next: T) => void
     allBlocks?: BookBlock[]
     renderQuizAttachment?: (blockId: string) => ReactElement | null
+    renderQuizAttachmentEditor?: BlockEditComponentProps['renderQuizAttachmentEditor']
+    quizAttachableBlockOptions?: BlockEditComponentProps['quizAttachableBlockOptions']
+    interactiveResponseBlockOptions?: BlockEditComponentProps['interactiveResponseBlockOptions']
+    onCreateQuizAttachment?: BlockEditComponentProps['onCreateQuizAttachment']
+    onUpdateQuizAttachment?: BlockEditComponentProps['onUpdateQuizAttachment']
+    onMoveQuizAttachmentToRoot?: BlockEditComponentProps['onMoveQuizAttachmentToRoot']
   }) => ReactElement,
 ): (props: BlockEditComponentProps) => ReactElement {
-  return ({ block, onChange, allBlocks, renderQuizAttachment }) => (
+  return ({
+    block,
+    onChange,
+    allBlocks,
+    renderQuizAttachment,
+    renderQuizAttachmentEditor,
+    quizAttachableBlockOptions,
+    interactiveResponseBlockOptions,
+    onCreateQuizAttachment,
+    onUpdateQuizAttachment,
+    onMoveQuizAttachmentToRoot,
+  }) => (
     <Component
       block={block as T}
       onChange={(next) => onChange(next)}
       allBlocks={allBlocks}
       renderQuizAttachment={renderQuizAttachment}
+      renderQuizAttachmentEditor={renderQuizAttachmentEditor}
+      quizAttachableBlockOptions={quizAttachableBlockOptions}
+      interactiveResponseBlockOptions={interactiveResponseBlockOptions}
+      onCreateQuizAttachment={onCreateQuizAttachment}
+      onUpdateQuizAttachment={onUpdateQuizAttachment}
+      onMoveQuizAttachmentToRoot={onMoveQuizAttachmentToRoot}
     />
   )
 }
@@ -65,10 +91,16 @@ function castView<T extends BookBlock>(
     block: T
     allBlocks?: BookBlock[]
     renderQuizAttachment?: (blockId: string) => ReactElement | null
+    renderInteractiveResponse?: BlockViewComponentProps['renderInteractiveResponse']
   }) => ReactElement,
 ): (props: BlockViewComponentProps) => ReactElement {
-  return ({ block, allBlocks, renderQuizAttachment }) => (
-    <Component block={block as T} allBlocks={allBlocks} renderQuizAttachment={renderQuizAttachment} />
+  return ({ block, allBlocks, renderQuizAttachment, renderInteractiveResponse }) => (
+    <Component
+      block={block as T}
+      allBlocks={allBlocks}
+      renderQuizAttachment={renderQuizAttachment}
+      renderInteractiveResponse={renderInteractiveResponse}
+    />
   )
 }
 
@@ -86,6 +118,8 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
     capabilities: {
       embeddable: false,
       canAttachToQuiz: false,
+      canAttachToQuestion: false,
+      canBeInteractiveResponse: false,
     },
     InlineEditComponent: castEdit(HeadingBlockEdit),
     PropertiesComponent: castEdit(HeadingBlockProperties),
@@ -99,6 +133,8 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
     capabilities: {
       embeddable: false,
       canAttachToQuiz: false,
+      canAttachToQuestion: false,
+      canBeInteractiveResponse: false,
     },
     InlineEditComponent: castEdit(TextBlockEdit),
     PropertiesComponent: castEdit(TextBlockProperties),
@@ -113,20 +149,25 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
       embeddable: true,
       embedMode: 'static',
       canAttachToQuiz: true,
+      canAttachToQuestion: true,
+      canBeInteractiveResponse: false,
       isLeafContentOnly: true,
     },
-    QuizAttachmentComponent: castQuizAttachment(ImageBlockQuizAttachment),
+  QuizAttachmentComponent: castQuizAttachment(ImageBlockQuizAttachment),
+    QuizAttachmentEditComponent: castEdit(ImageBlockEdit),
     PropertiesComponent: castEdit(ImageBlockEdit),
     ViewComponent: castView(ImageBlockView),
     create: () => createImageBlock(),
   },
   {
     id: QUIZ_BLOCK_TYPE,
-    name: 'Quiz',
+    name: 'Questão',
     icon: 'Qz',
     capabilities: {
       embeddable: false,
       canAttachToQuiz: false,
+      canAttachToQuestion: false,
+      canBeInteractiveResponse: false,
     },
     InlineEditComponent: castEdit(QuizBlockEdit),
     PropertiesComponent: castEdit(QuizBlockProperties),
@@ -141,9 +182,14 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
       embeddable: true,
       embedMode: 'static',
       canAttachToQuiz: true,
+      canAttachToQuestion: true,
+      canBeInteractiveResponse: true,
       isLeafContentOnly: true,
     },
     QuizAttachmentComponent: castQuizAttachment(PianoBlockQuizAttachment),
+    QuizAttachmentEditComponent: castEdit(PianoBlockQuizAttachmentEdit),
+    InteractiveResponseComponent: PianoBlockInteractiveResponse,
+    isInteractiveResponseValid: isPianoInteractiveResponseValid,
     InlineEditComponent: castEdit(PianoBlockEdit),
     PropertiesComponent: castEdit(PianoBlockProperties),
     ViewComponent: castView(PianoBlockView),
@@ -157,7 +203,19 @@ export function getBlockDefinition(type: BlockType): BlockDefinition | undefined
 
 export function canBlockAttachToQuiz(type: BlockType): boolean {
   const definition = getBlockDefinition(type)
-  return Boolean(definition?.capabilities?.canAttachToQuiz && definition.QuizAttachmentComponent)
+  return Boolean(
+    (definition?.capabilities?.canAttachToQuestion || definition?.capabilities?.canAttachToQuiz) &&
+    definition.QuizAttachmentComponent,
+  )
+}
+
+export function canBlockBeInteractiveResponse(type: BlockType): boolean {
+  const definition = getBlockDefinition(type)
+  return Boolean(
+    definition?.capabilities?.canBeInteractiveResponse &&
+    definition.InteractiveResponseComponent &&
+    definition.isInteractiveResponseValid,
+  )
 }
 
 export function createBlockByType(type: BlockType): BookBlock {
@@ -177,6 +235,36 @@ interface BlockEditRendererProps {
   block: BookBlock
   onChange: (next: BookBlock) => void
   allBlocks?: BookBlock[]
+  onCreateQuizAttachment?: BlockEditComponentProps['onCreateQuizAttachment']
+  onUpdateQuizAttachment?: BlockEditComponentProps['onUpdateQuizAttachment']
+  onMoveQuizAttachmentToRoot?: BlockEditComponentProps['onMoveQuizAttachmentToRoot']
+}
+
+export function getQuizAttachableBlockOptions() {
+  return BLOCK_REGISTRY
+    .filter((definition) => definition.capabilities?.canAttachToQuestion === true)
+    .map((definition) => ({ type: definition.id, name: definition.name, icon: definition.icon }))
+}
+
+export function getInteractiveResponseBlockOptions() {
+  return BLOCK_REGISTRY
+    .filter((definition) => definition.capabilities?.canBeInteractiveResponse === true)
+    .map((definition) => ({ type: definition.id, name: definition.name, icon: definition.icon }))
+}
+
+function createQuizAttachmentEditorRenderer() {
+  return (block: BookBlock, onChange: (next: BookBlock) => void): ReactElement | null => {
+    const definition = getBlockDefinition(block.type)
+    if (
+      (!definition?.capabilities?.canAttachToQuestion && !definition?.capabilities?.canBeInteractiveResponse) ||
+      !definition.QuizAttachmentEditComponent
+    ) {
+      return null
+    }
+
+    const Component = definition.QuizAttachmentEditComponent
+    return <Component block={block} onChange={onChange} />
+  }
 }
 
 function resolveQuizAttachableBlock(blockId: string, allBlocks?: BookBlock[]): BookBlock | undefined {
@@ -190,7 +278,11 @@ function resolveQuizAttachableBlock(blockId: string, allBlocks?: BookBlock[]): B
   }
 
   const definition = getBlockDefinition(target.type)
-  if (!definition?.capabilities?.canAttachToQuiz || !definition.QuizAttachmentComponent) {
+  if (
+    (!definition?.capabilities?.canAttachToQuestion && !definition?.capabilities?.canAttachToQuiz &&
+      !definition?.capabilities?.canBeInteractiveResponse) ||
+    !definition.QuizAttachmentComponent
+  ) {
     return undefined
   }
 
@@ -214,6 +306,30 @@ function createQuizAttachmentRenderer(allBlocks?: BookBlock[]) {
   }
 }
 
+function createInteractiveResponseRenderer(allBlocks?: BookBlock[]) {
+  return (
+    blockId: string,
+    props: Parameters<NonNullable<BlockViewComponentProps['renderInteractiveResponse']>>[1],
+  ): ReactElement | null => {
+    const target = allBlocks?.find((candidate) => candidate.id === blockId)
+    if (!target) {
+      return null
+    }
+
+    const definition = getBlockDefinition(target.type)
+    if (
+      !definition?.capabilities?.canBeInteractiveResponse ||
+      !definition.InteractiveResponseComponent ||
+      !definition.isInteractiveResponseValid?.(target)
+    ) {
+      return null
+    }
+
+    const Component = definition.InteractiveResponseComponent
+    return <Component block={target} {...props} />
+  }
+}
+
 export function hasInlineEditing(type: BlockType): boolean {
   return Boolean(getBlockDefinition(type)?.InlineEditComponent)
 }
@@ -222,7 +338,14 @@ export function hasPropertiesEditor(type: BlockType): boolean {
   return Boolean(getBlockDefinition(type)?.PropertiesComponent)
 }
 
-export function BlockInlineEditRenderer({ block, onChange, allBlocks }: BlockEditRendererProps) {
+export function BlockInlineEditRenderer({
+  block,
+  onChange,
+  allBlocks,
+  onCreateQuizAttachment,
+  onUpdateQuizAttachment,
+  onMoveQuizAttachmentToRoot,
+}: BlockEditRendererProps) {
   const definition = getBlockDefinition(block.type)
   if (!definition || !definition.InlineEditComponent) {
     return <p>Tipo de bloco nao suportado: {block.type}</p>
@@ -235,6 +358,12 @@ export function BlockInlineEditRenderer({ block, onChange, allBlocks }: BlockEdi
       onChange={onChange}
       allBlocks={allBlocks}
       renderQuizAttachment={createQuizAttachmentRenderer(allBlocks)}
+      renderQuizAttachmentEditor={createQuizAttachmentEditorRenderer()}
+      quizAttachableBlockOptions={getQuizAttachableBlockOptions()}
+      interactiveResponseBlockOptions={getInteractiveResponseBlockOptions()}
+      onCreateQuizAttachment={onCreateQuizAttachment}
+      onUpdateQuizAttachment={onUpdateQuizAttachment}
+      onMoveQuizAttachmentToRoot={onMoveQuizAttachmentToRoot}
     />
   )
 }
@@ -269,6 +398,11 @@ export function BlockViewRenderer({ block, allBlocks }: BlockViewRendererProps) 
 
   const Component = definition.ViewComponent
   return (
-    <Component block={block} allBlocks={allBlocks} renderQuizAttachment={createQuizAttachmentRenderer(allBlocks)} />
+    <Component
+      block={block}
+      allBlocks={allBlocks}
+      renderQuizAttachment={createQuizAttachmentRenderer(allBlocks)}
+      renderInteractiveResponse={createInteractiveResponseRenderer(allBlocks)}
+    />
   )
 }

@@ -10,6 +10,13 @@ import { normalizeNoteId } from '../../../music/notes'
 export const PIANO_BLOCK_TYPE = 'piano' as const
 
 export type PianoMode = 'display'
+export type PianoLearnerRole = 'stimulus' | 'response' | 'support'
+export type PianoInteractionMode = 'static' | 'explore' | 'select-notes'
+export type PianoComparisonMode = 'exact'
+
+export interface PianoLearnerAnswer {
+  selectedNoteIds: string[]
+}
 
 export interface PianoBlockContent {
   mode: PianoMode
@@ -30,7 +37,25 @@ export interface NormalizedPianoBlockContent {
 export interface PianoBlockData extends BookBlock {
   type: typeof PIANO_BLOCK_TYPE
   content: PianoBlockContent
-  settings: Record<string, never>
+  settings: PianoBlockSettings
+}
+
+export interface PianoBlockSettings {
+  learnerRole?: PianoLearnerRole
+  interactionMode?: PianoInteractionMode
+  minSelections?: number
+  maxSelections?: number | null
+  expectedNoteIds?: string[]
+  comparisonMode?: PianoComparisonMode
+}
+
+export interface NormalizedPianoBlockSettings {
+  learnerRole: PianoLearnerRole
+  interactionMode: PianoInteractionMode
+  minSelections: number
+  maxSelections: number | null
+  expectedNoteIds: string[]
+  comparisonMode: PianoComparisonMode
 }
 
 export const DEFAULT_PIANO_CONTENT: NormalizedPianoBlockContent = {
@@ -39,6 +64,47 @@ export const DEFAULT_PIANO_CONTENT: NormalizedPianoBlockContent = {
   octaveCount: 2,
   highlightedNoteIds: [],
   showNoteNames: true,
+}
+
+export const DEFAULT_PIANO_SETTINGS: NormalizedPianoBlockSettings = {
+  learnerRole: 'stimulus',
+  interactionMode: 'static',
+  minSelections: 0,
+  maxSelections: null,
+  expectedNoteIds: [],
+  comparisonMode: 'exact',
+}
+
+function normalizeSelectionLimit(value: unknown, fallback: number): number {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : fallback
+}
+
+export function normalizePianoSettings(value: unknown): NormalizedPianoBlockSettings {
+  const raw = (value ?? {}) as Partial<PianoBlockSettings>
+  const validPair =
+    (raw.learnerRole === 'stimulus' && raw.interactionMode === 'static') ||
+    (raw.learnerRole === 'support' && raw.interactionMode === 'explore') ||
+    (raw.learnerRole === 'response' && raw.interactionMode === 'select-notes')
+  const learnerRole = validPair ? raw.learnerRole! : DEFAULT_PIANO_SETTINGS.learnerRole
+  const interactionMode = validPair ? raw.interactionMode! : DEFAULT_PIANO_SETTINGS.interactionMode
+  const minSelections = normalizeSelectionLimit(raw.minSelections, DEFAULT_PIANO_SETTINGS.minSelections)
+  const rawMax = (raw as { maxSelections?: unknown }).maxSelections
+  const maxSelections = rawMax === null || rawMax === undefined || rawMax === ''
+    ? null
+    : Math.max(minSelections, normalizeSelectionLimit(rawMax, minSelections))
+  const expectedNoteIds = Array.isArray(raw.expectedNoteIds)
+    ? raw.expectedNoteIds.filter((item): item is string => typeof item === 'string')
+    : []
+
+  return {
+    learnerRole,
+    interactionMode,
+    minSelections,
+    maxSelections,
+    expectedNoteIds: Array.from(new Set(expectedNoteIds)),
+    comparisonMode: raw.comparisonMode === 'exact' ? 'exact' : DEFAULT_PIANO_SETTINGS.comparisonMode,
+  }
 }
 
 export function normalizePianoContent(value: unknown): NormalizedPianoBlockContent {

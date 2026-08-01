@@ -1,6 +1,7 @@
 import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 import type { BookBlock, EditorMode } from '../../models/book'
+import type { BlockEditComponentProps } from '../blocks/types'
 import {
   BlockInlineEditRenderer,
   BlockViewRenderer,
@@ -21,6 +22,9 @@ interface SortableBlockItemProps {
   onDelete: () => void
   onMoveUp: () => void
   onMoveDown: () => void
+  onCreateQuizAttachment?: BlockEditComponentProps['onCreateQuizAttachment']
+  onUpdateQuizAttachment?: BlockEditComponentProps['onUpdateQuizAttachment']
+  onMoveQuizAttachmentToRoot?: BlockEditComponentProps['onMoveQuizAttachmentToRoot']
 }
 
 export function SortableBlockItem({
@@ -34,6 +38,9 @@ export function SortableBlockItem({
   onDelete,
   onMoveUp,
   onMoveDown,
+  onCreateQuizAttachment,
+  onUpdateQuizAttachment,
+  onMoveQuizAttachmentToRoot,
 }: SortableBlockItemProps) {
   const canAttachToQuiz = canBlockAttachToQuiz(block.type)
 
@@ -95,7 +102,14 @@ export function SortableBlockItem({
 
       <div className="block-main-content">
         {showInlineEditor ? (
-          <BlockInlineEditRenderer block={block} onChange={onChange} allBlocks={allBlocks} />
+          <BlockInlineEditRenderer
+            block={block}
+            onChange={onChange}
+            allBlocks={allBlocks}
+            onCreateQuizAttachment={onCreateQuizAttachment}
+            onUpdateQuizAttachment={onUpdateQuizAttachment}
+            onMoveQuizAttachmentToRoot={onMoveQuizAttachmentToRoot}
+          />
         ) : (
           <BlockViewRenderer block={block} allBlocks={allBlocks} />
         )}

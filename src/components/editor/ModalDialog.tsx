@@ -27,6 +27,11 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
 export function ModalDialog({ isOpen, title, onClose, children }: ModalDialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previousFocusedRef = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (!isOpen) {
@@ -54,7 +59,7 @@ export function ModalDialog({ isOpen, title, onClose, children }: ModalDialogPro
 
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
 
@@ -89,7 +94,7 @@ export function ModalDialog({ isOpen, title, onClose, children }: ModalDialogPro
       document.body.style.overflow = bodyOverflow
       previousFocusedRef.current?.focus()
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) {
     return null

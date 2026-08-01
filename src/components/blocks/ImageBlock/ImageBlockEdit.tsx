@@ -217,6 +217,27 @@ export function ImageBlockEdit({ block, onChange }: ImageBlockEditProps) {
         ))}
       </select>
 
+      <label className="field-label" htmlFor={`img-fit-${block.id}`}>
+        Ajuste
+      </label>
+      <select
+        id={`img-fit-${block.id}`}
+        className="select-input"
+        value={block.settings.fit ?? 'contain'}
+        onChange={(event) =>
+          onChange({
+            ...block,
+            settings: {
+              ...block.settings,
+              fit: event.target.value === 'cover' ? 'cover' : 'contain',
+            },
+          })
+        }
+      >
+        <option value="contain">Conter</option>
+        <option value="cover">Cobrir</option>
+      </select>
+
       <ImageBlockMedia block={block} previewSrc={previewSrc} emptyMessage="Imagem sem URL" />
     </div>
   )

@@ -1,6 +1,6 @@
 import type { BookBlock } from '../../models/book'
 import { QUIZ_BLOCK_TYPE } from './QuizBlock'
-import { canBlockAttachToQuiz } from './registry'
+import { canBlockAttachToQuiz, canBlockBeInteractiveResponse } from './registry'
 
 function toAttachmentId(value: unknown): string | undefined {
   if (typeof value !== 'string') {
@@ -11,16 +11,23 @@ function toAttachmentId(value: unknown): string | undefined {
   return trimmed ? trimmed : undefined
 }
 
-function readQuizAttachmentIds(content: unknown): string[] {
+function readQuizAttachmentIds(content: unknown): Array<{ id: string; response: boolean }> {
   const rawContent = (content ?? {}) as {
+    promptBlockId?: unknown
     questionBlockId?: unknown
+    responseBlockId?: unknown
     options?: unknown
   }
 
-  const ids: string[] = []
-  const questionBlockId = toAttachmentId(rawContent.questionBlockId)
+  const ids: Array<{ id: string; response: boolean }> = []
+  const questionBlockId = toAttachmentId(rawContent.promptBlockId) ?? toAttachmentId(rawContent.questionBlockId)
   if (questionBlockId) {
-    ids.push(questionBlockId)
+    ids.push({ id: questionBlockId, response: false })
+  }
+
+  const responseBlockId = toAttachmentId(rawContent.responseBlockId)
+  if (responseBlockId) {
+    ids.push({ id: responseBlockId, response: true })
   }
 
   const rawOptions = Array.isArray(rawContent.options) ? rawContent.options : []
@@ -28,19 +35,19 @@ function readQuizAttachmentIds(content: unknown): string[] {
     const rawOption = (option ?? {}) as { blockId?: unknown }
     const optionBlockId = toAttachmentId(rawOption.blockId)
     if (optionBlockId) {
-      ids.push(optionBlockId)
+      ids.push({ id: optionBlockId, response: false })
     }
   })
 
   return ids
 }
 
-function isValidQuizAttachmentTarget(block: BookBlock | undefined): block is BookBlock {
+function isValidQuizAttachmentTarget(block: BookBlock | undefined, response: boolean): block is BookBlock {
   if (!block) {
     return false
   }
 
-  return canBlockAttachToQuiz(block.type)
+  return response ? canBlockBeInteractiveResponse(block.type) : canBlockAttachToQuiz(block.type)
 }
 
 export function getQuizAttachedBlockIds(blocks: BookBlock[]): Set<string> {
@@ -53,16 +60,18 @@ export function getQuizAttachedBlockIds(blocks: BookBlock[]): Set<string> {
     }
 
     const attachmentIds = readQuizAttachmentIds(block.content)
-    attachmentIds.forEach((attachmentId) => {
-      const target = allBlocksById.get(attachmentId)
-      if (isValidQuizAttachmentTarget(target)) {
-        attached.add(attachmentId)
+    attachmentIds.forEach((attachment) => {
+      const target = allBlocksById.get(attachment.id)
+      if (isValidQuizAttachmentTarget(target, attachment.response)) {
+        attached.add(attachment.id)
       }
     })
   })
 
   return attached
 }
+
+export const getQuestionAttachedBlockIds = getQuizAttachedBlockIds
 
 export function getRootBlocks(blocks: BookBlock[]): BookBlock[] {
   const attached = getQuizAttachedBlockIds(blocks)
@@ -84,6 +93,8 @@ export function detachBlockFromAllQuizSlots(blocks: BookBlock[], blockId: string
 
     const rawContent = (block.content ?? {}) as {
       questionBlockId?: unknown
+      promptBlockId?: unknown
+      responseBlockId?: unknown
       options?: unknown
       [key: string]: unknown
     }
@@ -91,12 +102,23 @@ export function detachBlockFromAllQuizSlots(blocks: BookBlock[], blockId: string
     let changed = false
     const nextContent: {
       questionBlockId?: unknown
+      promptBlockId?: unknown
+      responseBlockId?: unknown
       options?: unknown
       [key: string]: unknown
     } = { ...rawContent }
 
-    if (toAttachmentId(rawContent.questionBlockId) === targetId) {
+    if (
+      toAttachmentId(rawContent.promptBlockId) === targetId ||
+      toAttachmentId(rawContent.questionBlockId) === targetId
+    ) {
+      nextContent.promptBlockId = undefined
       nextContent.questionBlockId = undefined
+      changed = true
+    }
+
+    if (toAttachmentId(rawContent.responseBlockId) === targetId) {
+      nextContent.responseBlockId = undefined
       changed = true
     }
 
@@ -107,7 +129,8 @@ export function detachBlockFromAllQuizSlots(blocks: BookBlock[], blockId: string
         return option
       }
 
-      const { blockId: _removed, ...rest } = rawOption
+      const rest = { ...rawOption }
+      delete rest.blockId
       changed = true
       return rest
     })
@@ -126,3 +149,5 @@ export function detachBlockFromAllQuizSlots(blocks: BookBlock[], blockId: string
 
   return hasChanges ? nextBlocks : blocks
 }
+
+export const detachBlockFromAllQuestionSlots = detachBlockFromAllQuizSlots
