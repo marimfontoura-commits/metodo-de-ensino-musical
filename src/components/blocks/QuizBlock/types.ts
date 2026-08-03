@@ -7,6 +7,22 @@ import {
 } from '../imageSource'
 
 export const QUIZ_BLOCK_TYPE = 'quiz' as const
+export type QuestionType = 'multiple-choice' | 'open-response' | 'interactive-response'
+export type OpenResponseComparisonMode = 'exact' | 'normalized'
+
+export interface OpenResponseConfig {
+  placeholder?: string
+  expectedAnswer?: string
+  comparisonMode?: OpenResponseComparisonMode
+  maxLength?: number
+}
+
+export interface NormalizedOpenResponseConfig {
+  placeholder: string
+  expectedAnswer: string
+  comparisonMode: OpenResponseComparisonMode
+  maxLength?: number
+}
 
 export interface QuizOption {
   id: string
@@ -23,9 +39,14 @@ export interface NormalizedQuizOption {
 }
 
 export interface QuizBlockContent {
+  questionType?: QuestionType
+  prompt?: string
   question: string
+  promptBlockId?: string
   questionImage?: ImageSourceContent
   questionBlockId?: string
+  responseBlockId?: string
+  openResponseConfig?: OpenResponseConfig
   options: QuizOption[]
   correctOptionId: string
   successFeedback: string
@@ -33,9 +54,14 @@ export interface QuizBlockContent {
 }
 
 export interface NormalizedQuizBlockContent {
+  questionType: QuestionType
+  prompt: string
   question: string
+  promptBlockId?: string
   questionImage: NormalizedImageSourceContent
   questionBlockId?: string
+  responseBlockId?: string
+  openResponseConfig: NormalizedOpenResponseConfig
   options: NormalizedQuizOption[]
   correctOptionId: string
   successFeedback: string
@@ -154,10 +180,33 @@ export function normalizeQuizContent(value: unknown): NormalizedQuizBlockContent
       ? raw.correctOptionId
       : options[0].id
 
+  const questionType: QuestionType =
+    raw.questionType === 'open-response' || raw.questionType === 'interactive-response'
+      ? raw.questionType
+      : 'multiple-choice'
+  const prompt = typeof raw.prompt === 'string'
+    ? raw.prompt
+    : typeof raw.question === 'string'
+      ? raw.question
+      : 'Novo enunciado'
+  const promptBlockId = normalizeAttachmentBlockId(raw.promptBlockId) ?? normalizeAttachmentBlockId(raw.questionBlockId)
+  const rawOpen = (raw.openResponseConfig ?? {}) as OpenResponseConfig
+  const rawMaxLength = Number(rawOpen.maxLength)
+
   return {
-    question: typeof raw.question === 'string' ? raw.question : 'Nova pergunta',
+    questionType,
+    prompt,
+    question: prompt,
+    promptBlockId,
     questionImage: normalizeImageSourceContent(raw.questionImage),
-    questionBlockId: normalizeAttachmentBlockId(raw.questionBlockId),
+    questionBlockId: promptBlockId,
+    responseBlockId: normalizeAttachmentBlockId(raw.responseBlockId),
+    openResponseConfig: {
+      placeholder: typeof rawOpen.placeholder === 'string' ? rawOpen.placeholder : 'Digite sua resposta',
+      expectedAnswer: typeof rawOpen.expectedAnswer === 'string' ? rawOpen.expectedAnswer : '',
+      comparisonMode: rawOpen.comparisonMode === 'normalized' ? 'normalized' : 'exact',
+      maxLength: Number.isFinite(rawMaxLength) && rawMaxLength > 0 ? Math.floor(rawMaxLength) : undefined,
+    },
     options,
     correctOptionId: validCorrectId,
     successFeedback:

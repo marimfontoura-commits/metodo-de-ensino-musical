@@ -8,6 +8,8 @@ interface PianoKeyboardProps {
   showNoteNames: boolean
   highlightedNoteIds: Set<string>
   pressedNoteIds?: Set<string>
+  learnerSelectedNoteIds?: Set<string>
+  answerSelectedNoteIds?: Set<string>
   interactive?: boolean
   onPress: (noteId: string) => void
 }
@@ -17,6 +19,8 @@ function getKeyClassName(
   noteId: string,
   highlightedNoteIds: Set<string>,
   pressedNoteIds: Set<string>,
+  learnerSelectedNoteIds: Set<string>,
+  answerSelectedNoteIds: Set<string>,
 ): string {
   const classNames = [isBlack ? 'piano-key piano-key-black' : 'piano-key piano-key-white']
 
@@ -28,6 +32,14 @@ function getKeyClassName(
     classNames.push('is-pressed')
   }
 
+  if (learnerSelectedNoteIds.has(noteId)) {
+    classNames.push('is-learner-selected')
+  }
+
+  if (answerSelectedNoteIds.has(noteId)) {
+    classNames.push('is-answer-selected')
+  }
+
   return classNames.join(' ')
 }
 
@@ -37,10 +49,14 @@ export function PianoKeyboard({
   showNoteNames,
   highlightedNoteIds,
   pressedNoteIds,
+  learnerSelectedNoteIds,
+  answerSelectedNoteIds,
   interactive = true,
   onPress,
 }: PianoKeyboardProps) {
   const activePressed = pressedNoteIds ?? new Set<string>()
+  const activeLearnerSelected = learnerSelectedNoteIds ?? new Set<string>()
+  const activeAnswerSelected = answerSelectedNoteIds ?? new Set<string>()
   const whiteKeys = keys.filter((key) => !key.isBlack)
   const blackKeys = keys.filter((key) => key.isBlack)
 
@@ -54,7 +70,7 @@ export function PianoKeyboard({
           <button
             key={key.noteId}
             type="button"
-            className={getKeyClassName(false, key.noteId, highlightedNoteIds, activePressed)}
+            className={getKeyClassName(false, key.noteId, highlightedNoteIds, activePressed, activeLearnerSelected, activeAnswerSelected)}
             onClick={() => {
               if (interactive) {
                 onPress(key.noteId)
@@ -73,7 +89,7 @@ export function PianoKeyboard({
           <button
             key={key.noteId}
             type="button"
-            className={getKeyClassName(true, key.noteId, highlightedNoteIds, activePressed)}
+            className={getKeyClassName(true, key.noteId, highlightedNoteIds, activePressed, activeLearnerSelected, activeAnswerSelected)}
             style={{ left: `${key.blackLeftPercent ?? 0}%` }}
             onClick={() => {
               if (interactive) {

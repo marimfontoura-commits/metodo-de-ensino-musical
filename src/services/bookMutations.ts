@@ -1,6 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
 import type { Book, BookBlock } from '../models/book'
-import { canBlockAttachToQuiz } from '../components/blocks/registry'
+import { canBlockAttachToQuiz, canBlockBeInteractiveResponse } from '../components/blocks/registry'
 import { QUIZ_BLOCK_TYPE, normalizeQuizContent, normalizeQuizOptionList } from '../components/blocks/QuizBlock'
 import { detachBlockFromAllQuizSlots, getRootBlocks } from '../components/blocks/quizAttachmentSlots'
 import { duplicateBlock } from './bookFactory'
@@ -16,7 +16,12 @@ interface QuizOptionTarget {
   optionId: string
 }
 
-export type QuizAttachmentTarget = QuizQuestionTarget | QuizOptionTarget
+interface QuizResponseTarget {
+  kind: 'response'
+  quizBlockId: string
+}
+
+export type QuizAttachmentTarget = QuizQuestionTarget | QuizOptionTarget | QuizResponseTarget
 
 function reorderRootBlockSequence(blocks: BookBlock[], orderedRootIds: string[]): BookBlock[] {
   const orderedRoots = orderedRootIds
@@ -44,7 +49,11 @@ function getQuizSlotOccupantId(blocks: BookBlock[], target: QuizAttachmentTarget
 
   const content = normalizeQuizContent(quizBlock.content)
   if (target.kind === 'question') {
-    return content.questionBlockId
+    return content.promptBlockId
+  }
+
+  if (target.kind === 'response') {
+    return content.responseBlockId
   }
 
   return content.options.find((option) => option.id === target.optionId)?.blockId
@@ -136,7 +145,10 @@ export function reorderBlocks(book: Book, activeId: string, overId: string): Boo
 
 export function attachBlockToQuizSlot(book: Book, blockId: string, target: QuizAttachmentTarget): Book {
   const sourceBlock = book.blocks.find((block) => block.id === blockId)
-  if (!sourceBlock || !canBlockAttachToQuiz(sourceBlock.type)) {
+  const canUseSource = target.kind === 'response'
+    ? canBlockBeInteractiveResponse(sourceBlock?.type ?? '')
+    : canBlockAttachToQuiz(sourceBlock?.type ?? '')
+  if (!sourceBlock || !canUseSource) {
     return book
   }
 
@@ -158,7 +170,18 @@ export function attachBlockToQuizSlot(book: Book, blockId: string, target: QuizA
         ...block,
         content: {
           ...content,
+          promptBlockId: blockId,
           questionBlockId: blockId,
+        },
+      }
+    }
+
+    if (target.kind === 'response') {
+      return {
+        ...block,
+        content: {
+          ...content,
+          responseBlockId: blockId,
         },
       }
     }
@@ -192,7 +215,12 @@ export function attachBlockToQuizSlot(book: Book, blockId: string, target: QuizA
   }
 }
 
-export function moveAttachedBlockToRoot(book: Book, blockId: string, overRootBlockId?: string): Book {
+export function moveAttachedBlockToRoot(
+  book: Book,
+  blockId: string,
+  overRootBlockId?: string,
+  afterRootBlockId?: string,
+): Book {
   const detachedBlocks = detachBlockFromAllQuizSlots(book.blocks, blockId)
   const rootBlocks = getRootBlocks(detachedBlocks)
   const blockExistsInRoot = rootBlocks.some((block) => block.id === blockId)
@@ -208,7 +236,12 @@ export function moveAttachedBlockToRoot(book: Book, blockId: string, overRootBlo
     typeof overRootBlockId === 'string' ? rootIdsWithoutBlock.findIndex((id) => id === overRootBlockId) : -1
 
   const reorderedRootIds = [...rootIdsWithoutBlock]
-  if (overIndex >= 0) {
+  const afterIndex =
+    typeof afterRootBlockId === 'string' ? rootIdsWithoutBlock.findIndex((id) => id === afterRootBlockId) : -1
+
+  if (afterIndex >= 0) {
+    reorderedRootIds.splice(afterIndex + 1, 0, blockId)
+  } else if (overIndex >= 0) {
     reorderedRootIds.splice(overIndex, 0, blockId)
   } else {
     reorderedRootIds.push(blockId)

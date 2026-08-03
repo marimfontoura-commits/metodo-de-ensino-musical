@@ -14,6 +14,7 @@ export interface ImageBlockSettings {
   rounded: boolean
   width: ContentWidth
   alignment: ContentAlignment
+  fit?: 'contain' | 'cover'
 }
 
 export interface ImageBlockData extends BookBlock {

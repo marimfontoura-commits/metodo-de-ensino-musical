@@ -12,6 +12,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import type { Book, BookBlock, EditorMode } from '../../models/book'
+import type { BlockEditComponentProps } from '../blocks/types'
 import { canBlockAttachToQuiz } from '../blocks/registry'
 import { QUIZ_BLOCK_TYPE, normalizeQuizContent } from '../blocks/QuizBlock'
 import {
@@ -39,6 +40,8 @@ interface BookCanvasProps {
   onReorderBlocks: (activeId: string, overId: string) => void
   onAttachBlockToQuizSlot: (blockId: string, target: QuizDropTarget) => void
   onMoveAttachedBlockToRoot: (blockId: string, overRootBlockId?: string) => void
+  onCreateQuizAttachment: NonNullable<BlockEditComponentProps['onCreateQuizAttachment']>
+  onMoveQuizAttachmentToRoot: NonNullable<BlockEditComponentProps['onMoveQuizAttachmentToRoot']>
 }
 
 export function BookCanvas({
@@ -56,6 +59,8 @@ export function BookCanvas({
   onReorderBlocks,
   onAttachBlockToQuizSlot,
   onMoveAttachedBlockToRoot,
+  onCreateQuizAttachment,
+  onMoveQuizAttachmentToRoot,
 }: BookCanvasProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
   const rootBlocks = getRootBlocks(book.blocks)
@@ -74,7 +79,7 @@ export function BookCanvas({
 
     const content = normalizeQuizContent(quizBlock.content)
     if (target.kind === 'question') {
-      return content.questionBlockId
+      return content.promptBlockId
     }
 
     return content.options.find((option) => option.id === target.optionId)?.blockId
@@ -172,6 +177,9 @@ export function BookCanvas({
                 onDelete={() => onDeleteBlock(block.id)}
                 onMoveUp={() => onMoveBlockUp(block.id)}
                 onMoveDown={() => onMoveBlockDown(block.id)}
+                onCreateQuizAttachment={onCreateQuizAttachment}
+                onUpdateQuizAttachment={onUpdateBlock}
+                onMoveQuizAttachmentToRoot={onMoveQuizAttachmentToRoot}
               />
             ))}
 

@@ -40,7 +40,7 @@ export function ImageBlockMedia({ block, previewSrc, emptyMessage }: ImageBlockM
   return (
     <div className={`media-frame ${toWidthClass(width)} ${toAlignmentClass(alignment)}`}>
       <img
-        className={block.settings.rounded ? 'book-image rounded' : 'book-image'}
+        className={`${block.settings.rounded ? 'book-image rounded' : 'book-image'} fit-${block.settings.fit ?? 'contain'}`}
         src={source.src}
         alt={content.alt || 'Imagem'}
       />

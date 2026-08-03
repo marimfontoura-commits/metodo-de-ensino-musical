@@ -1,5 +1,5 @@
 import { createId } from '../../../services/idService'
-import { DEFAULT_PIANO_CONTENT, PIANO_BLOCK_TYPE, type PianoBlockData } from './types'
+import { DEFAULT_PIANO_CONTENT, DEFAULT_PIANO_SETTINGS, PIANO_BLOCK_TYPE, type PianoBlockData } from './types'
 
 export function createPianoBlock(): PianoBlockData {
   return {
@@ -8,6 +8,8 @@ export function createPianoBlock(): PianoBlockData {
     content: {
       ...DEFAULT_PIANO_CONTENT,
     },
-    settings: {},
+    settings: {
+      ...DEFAULT_PIANO_SETTINGS,
+    },
   }
 }

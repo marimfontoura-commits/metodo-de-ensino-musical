@@ -15,10 +15,13 @@ import {
   updateBlock,
 } from './services/bookMutations'
 import type { QuizDropTarget } from './components/blocks/QuizBlock/quizAttachmentDnd'
-import { loadBook, saveBook } from './services/bookStorageService'
+import { loadBook, migrateLegacyQuizImages, saveBook } from './services/bookStorageService'
+import { createBlockByType } from './components/blocks/registry'
+import type { QuizAttachmentTarget } from './components/blocks/types'
+import { PIANO_BLOCK_TYPE, normalizePianoSettings } from './components/blocks/PianoBlock'
 
 function App() {
-  const [book, setBook] = useState<Book>(() => loadBook() ?? createInitialBook())
+  const [book, setBook] = useState<Book>(() => migrateLegacyQuizImages(loadBook() ?? createInitialBook()))
   const [mode, setMode] = useState<EditorMode>('edit')
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
 
@@ -75,6 +78,26 @@ function App() {
     setBook((current) => moveAttachedBlockToRoot(current, blockId, overRootBlockId))
   }
 
+  function handleCreateQuizAttachment(type: string, target: QuizAttachmentTarget): BookBlock | null {
+    const created = createBlockByType(type)
+    const nextBlock = target.kind === 'response' && created.type === PIANO_BLOCK_TYPE
+      ? {
+          ...created,
+          settings: normalizePianoSettings({
+            ...(created.settings as object),
+            learnerRole: 'response',
+            interactionMode: 'select-notes',
+          }),
+        }
+      : created
+    setBook((current) => attachBlockToQuizSlot(insertBlock(current, nextBlock), nextBlock.id, target))
+    return nextBlock
+  }
+
+  function handleMoveQuizAttachmentToRoot(blockId: string, quizBlockId: string) {
+    setBook((current) => moveAttachedBlockToRoot(current, blockId, undefined, quizBlockId))
+  }
+
   return (
     <div className="editor-shell">
       <TopBar mode={mode} onSetMode={setMode} />
@@ -112,6 +135,8 @@ function App() {
               onReorderBlocks={handleReorderBlocks}
               onAttachBlockToQuizSlot={handleAttachBlockToQuizSlot}
               onMoveAttachedBlockToRoot={handleMoveAttachedBlockToRoot}
+              onCreateQuizAttachment={handleCreateQuizAttachment}
+              onMoveQuizAttachmentToRoot={handleMoveQuizAttachmentToRoot}
             />
           </section>
 

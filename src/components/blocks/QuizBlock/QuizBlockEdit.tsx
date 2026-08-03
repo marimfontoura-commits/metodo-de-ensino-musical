@@ -1,33 +1,47 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { createId } from '../../../services/idService'
-import { hasRenderableImage } from '../imageSource'
+import type { BookBlock } from '../../../models/book'
+import type { QuizAttachableBlockOption, QuizAttachmentEditorSize, QuizAttachmentTarget } from '../types'
 import {
   QUIZ_LIMITS,
   normalizeQuizContent,
   normalizeQuizOptionList,
-  normalizeQuizSettings,
   type QuizBlockData,
   type QuizOption,
 } from './types'
-import { createOptionSlotDropId, createQuestionSlotDropId } from './quizAttachmentDnd'
-import { QuizAttachmentDraggable } from './QuizAttachmentDraggable'
-import { QuizAttachmentDropZone } from './QuizAttachmentDropZone'
 import { EditorIcon } from '../../editor/EditorIcon'
-import { QuizInlineImageEditor } from './QuizInlineImageEditor'
-import { QuizImagePreview } from './QuizImagePreview'
+import { QuizResourceSlot } from './QuizResourceSlot'
 import '../../../styles/blocks.css'
 
 interface QuizBlockEditProps {
   block: QuizBlockData
   onChange: (next: QuizBlockData) => void
   renderQuizAttachment?: (blockId: string) => ReactElement | null
+  renderQuizAttachmentEditor?: (block: BookBlock, onChange: (next: BookBlock) => void) => ReactElement | null
+  getQuizAttachmentEditorSize?: (block: BookBlock) => QuizAttachmentEditorSize
+  quizAttachableBlockOptions?: QuizAttachableBlockOption[]
+  interactiveResponseBlockOptions?: QuizAttachableBlockOption[]
+  allBlocks?: BookBlock[]
+  onCreateQuizAttachment?: (type: string, target: QuizAttachmentTarget) => BookBlock | null
+  onUpdateQuizAttachment?: (blockId: string, next: BookBlock) => void
+  onMoveQuizAttachmentToRoot?: (blockId: string, quizBlockId: string) => void
 }
 
-export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlockEditProps) {
+export function QuizBlockEdit({
+  block,
+  onChange,
+  renderQuizAttachment,
+  renderQuizAttachmentEditor,
+  getQuizAttachmentEditorSize,
+  quizAttachableBlockOptions = [],
+  interactiveResponseBlockOptions = [],
+  allBlocks = [],
+  onCreateQuizAttachment,
+  onUpdateQuizAttachment,
+  onMoveQuizAttachmentToRoot,
+}: QuizBlockEditProps) {
   const content = normalizeQuizContent(block.content)
-  const settings = normalizeQuizSettings(block.settings)
-  const hasVisualAlternatives = content.options.some((option) => hasRenderableImage(option.image))
   const [openMenuOptionId, setOpenMenuOptionId] = useState('')
 
   useEffect(() => {
@@ -66,16 +80,6 @@ export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlo
 
   function updateOptions(nextOptions: QuizOption[]) {
     updateContent({ options: normalizeQuizOptionList(nextOptions) })
-  }
-
-  function updateSettings(nextSettings: Partial<QuizBlockData['settings']>) {
-    onChange({
-      ...block,
-      settings: {
-        ...settings,
-        ...nextSettings,
-      },
-    })
   }
 
   function updateOption(optionId: string, nextPatch: Partial<QuizOption>) {
@@ -142,8 +146,14 @@ export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlo
     setOpenMenuOptionId('')
   }
 
-  const questionAttachment =
-    content.questionBlockId && renderQuizAttachment ? renderQuizAttachment(content.questionBlockId) : null
+  const canManageResources = Boolean(
+    renderQuizAttachment &&
+    renderQuizAttachmentEditor &&
+    getQuizAttachmentEditorSize &&
+    onCreateQuizAttachment &&
+    onUpdateQuizAttachment &&
+    onMoveQuizAttachmentToRoot,
+  )
 
   return (
     <section className="quiz-block editing" aria-labelledby={`quiz-question-${block.id}`}>
@@ -151,61 +161,31 @@ export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlo
         <textarea
           id={`quiz-question-${block.id}`}
           className="quiz-inline-question-input"
-          value={content.question}
-          onChange={(event) => updateContent({ question: event.target.value })}
-          placeholder="Digite a pergunta"
+          value={content.prompt}
+          onChange={(event) => updateContent({ prompt: event.target.value, question: event.target.value })}
+          placeholder="Digite o enunciado"
           rows={2}
         />
-        <QuizInlineImageEditor
-          idPrefix={`quiz-question-image-${block.id}`}
-          label="pergunta"
-          value={content.questionImage}
-          onChange={(next) => updateContent({ questionImage: next })}
-        />
-        <label className="quiz-inline-size-select">
-          <span className="field-label">Tamanho da imagem</span>
-          <select
-            className="select-input"
-            value={settings.questionImageSize}
-            onChange={(event) =>
-              updateSettings({
-                questionImageSize:
-                  event.target.value === 'small' ||
-                  event.target.value === 'medium' ||
-                  event.target.value === 'large' ||
-                  event.target.value === 'full'
-                    ? event.target.value
-                    : settings.questionImageSize,
-              })
-            }
-          >
-            <option value="small">Pequena</option>
-            <option value="medium">Media</option>
-            <option value="large">Grande</option>
-            <option value="full">Completa</option>
-          </select>
-        </label>
       </div>
 
-      <QuizImagePreview
-        image={content.questionImage}
-        fallbackAlt="Imagem da pergunta"
-        className={`quiz-question-image quiz-question-image-size-${settings.questionImageSize}`}
-      />
+      {canManageResources ? (
+        <QuizResourceSlot
+          label="enunciado"
+          currentBlockId={content.promptBlockId}
+          allBlocks={allBlocks}
+          target={{ kind: 'question', quizBlockId: block.id }}
+          attachableOptions={quizAttachableBlockOptions}
+          renderAttachment={renderQuizAttachment!}
+          renderAttachmentEditor={renderQuizAttachmentEditor!}
+          getAttachmentEditorSize={getQuizAttachmentEditorSize!}
+          onCreate={onCreateQuizAttachment!}
+          onUpdate={onUpdateQuizAttachment!}
+          onMoveToRoot={onMoveQuizAttachmentToRoot!}
+        />
+      ) : null}
 
-      <QuizAttachmentDropZone
-        dropId={createQuestionSlotDropId(block.id)}
-        title="Slot de recurso da pergunta"
-        currentBlockId={content.questionBlockId}
-      >
-        {questionAttachment && content.questionBlockId ? (
-          <QuizAttachmentDraggable blockId={content.questionBlockId} canAttachToQuiz>
-            {questionAttachment}
-          </QuizAttachmentDraggable>
-        ) : null}
-      </QuizAttachmentDropZone>
-
-      <div className={hasVisualAlternatives ? 'quiz-options has-images' : 'quiz-options'}>
+      {content.questionType === 'multiple-choice' ? <>
+      <div className="quiz-options">
         {content.options.map((option, index) => (
           <label
             key={option.id}
@@ -225,19 +205,21 @@ export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlo
             />
 
             <span className="quiz-option-content">
-              <QuizAttachmentDropZone
-                dropId={createOptionSlotDropId(block.id, option.id)}
-                title={`Slot de recurso da alternativa ${index + 1}`}
-                currentBlockId={option.blockId}
-              >
-                {option.blockId && renderQuizAttachment ? (
-                  <div className="quiz-option-attachment-slot">
-                    <QuizAttachmentDraggable blockId={option.blockId} canAttachToQuiz>
-                      {renderQuizAttachment(option.blockId)}
-                    </QuizAttachmentDraggable>
-                  </div>
-                ) : null}
-              </QuizAttachmentDropZone>
+              {canManageResources ? (
+                <QuizResourceSlot
+                  label={`alternativa ${index + 1}`}
+                  currentBlockId={option.blockId}
+                  allBlocks={allBlocks}
+                  target={{ kind: 'option', quizBlockId: block.id, optionId: option.id }}
+                  attachableOptions={quizAttachableBlockOptions}
+                  renderAttachment={renderQuizAttachment!}
+                  renderAttachmentEditor={renderQuizAttachmentEditor!}
+                  getAttachmentEditorSize={getQuizAttachmentEditorSize!}
+                  onCreate={onCreateQuizAttachment!}
+                  onUpdate={onUpdateQuizAttachment!}
+                  onMoveToRoot={onMoveQuizAttachmentToRoot!}
+                />
+              ) : null}
 
               <div className="quiz-option-edit-row">
                 <textarea
@@ -249,12 +231,6 @@ export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlo
                 />
 
                 <div className="quiz-option-actions" aria-label={`Acoes da alternativa ${index + 1}`}>
-                  <QuizInlineImageEditor
-                    idPrefix={`quiz-option-image-${block.id}-${option.id}`}
-                    label={`alternativa ${index + 1}`}
-                    value={option.image}
-                    onChange={(next) => updateOption(option.id, { image: next })}
-                  />
                   <div className="quiz-option-secondary-actions">
                     <button
                       type="button"
@@ -333,13 +309,6 @@ export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlo
                 </div>
               </div>
 
-              <QuizImagePreview
-                image={option.image}
-                fallbackAlt={`Imagem da alternativa ${index + 1}`}
-                frameClassName={`quiz-option-image-frame size-${settings.optionImageSize}`}
-                className="quiz-option-image"
-                fitMode={settings.optionImageFit}
-              />
             </span>
           </label>
         ))}
@@ -356,6 +325,38 @@ export function QuizBlockEdit({ block, onChange, renderQuizAttachment }: QuizBlo
         </button>
       </div>
       <p className="field-help">No modo Editar, radios sao apenas representativos.</p>
+      </> : null}
+
+      {content.questionType === 'open-response' ? (
+        <div className="quiz-open-response-preview">
+          <textarea
+            value=""
+            rows={3}
+            disabled
+            placeholder={content.openResponseConfig.placeholder}
+            aria-label="Prévia do campo de resposta aberta"
+          />
+          <p className="field-help">Configure a resposta esperada e a comparação no painel de propriedades.</p>
+        </div>
+      ) : null}
+
+      {content.questionType === 'interactive-response' && canManageResources ? (
+        <QuizResourceSlot
+          label="resposta interativa"
+          currentBlockId={content.responseBlockId}
+          allBlocks={allBlocks}
+          target={{ kind: 'response', quizBlockId: block.id }}
+          attachableOptions={interactiveResponseBlockOptions}
+          emptyButtonLabel="+ Adicionar componente de resposta"
+          pickerTitle="Adicionar componente de resposta"
+          renderAttachment={renderQuizAttachment!}
+          renderAttachmentEditor={renderQuizAttachmentEditor!}
+          getAttachmentEditorSize={getQuizAttachmentEditorSize!}
+          onCreate={onCreateQuizAttachment!}
+          onUpdate={onUpdateQuizAttachment!}
+          onMoveToRoot={onMoveQuizAttachmentToRoot!}
+        />
+      ) : null}
     </section>
   )
 }

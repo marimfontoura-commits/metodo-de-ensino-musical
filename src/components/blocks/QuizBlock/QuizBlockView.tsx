@@ -1,22 +1,28 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { hasRenderableImage } from '../imageSource'
+import type { InteractiveResponseController, InteractiveResponseStatus } from '../types'
 import {
   getQuizOptionLabel,
   normalizeQuizContent,
-  normalizeQuizSettings,
   type NormalizedQuizOption,
   type QuizBlockData,
 } from './types'
 import { createOptionSlotDropId, createQuestionSlotDropId } from './quizAttachmentDnd'
 import { QuizAttachmentDraggable } from './QuizAttachmentDraggable'
 import { QuizAttachmentDropZone } from './QuizAttachmentDropZone'
-import { QuizImagePreview } from './QuizImagePreview'
 import '../../../styles/blocks.css'
 
 interface QuizBlockViewProps {
   block: QuizBlockData
   renderQuizAttachment?: (blockId: string) => ReactElement | null
+  renderInteractiveResponse?: (
+    blockId: string,
+    props: {
+      locked: boolean
+      onControllerReady: (controller: InteractiveResponseController | null) => void
+      onStatusChange: (status: InteractiveResponseStatus) => void
+    },
+  ) => ReactElement | null
 }
 
 type AttemptStatus = 'idle' | 'correct' | 'incorrect'
@@ -25,8 +31,6 @@ interface QuizOptionChoiceProps {
   blockId: string
   option: NormalizedQuizOption
   index: number
-  optionImageSize: 'compact' | 'medium' | 'large'
-  optionImageFit: 'contain' | 'cover'
   groupName: string
   selectedOptionId: string
   isReaderMode: boolean
@@ -38,8 +42,6 @@ function QuizOptionChoice({
   blockId,
   option,
   index,
-  optionImageSize,
-  optionImageFit,
   groupName,
   selectedOptionId,
   isReaderMode,
@@ -72,42 +74,43 @@ function QuizOptionChoice({
       />
 
       <span className="quiz-option-content">
-        <QuizImagePreview
-          image={option.image}
-          fallbackAlt={optionLabel}
-          frameClassName={`quiz-option-image-frame size-${optionImageSize}`}
-          className="quiz-option-image"
-          fitMode={optionImageFit}
-        />
         {option.text.trim() ? <span>{option.text}</span> : null}
       </span>
     </label>
   )
 }
 
-export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProps) {
+export function QuizBlockView({ block, renderQuizAttachment, renderInteractiveResponse }: QuizBlockViewProps) {
   const content = useMemo(() => normalizeQuizContent(block.content), [block.content])
-  const settings = useMemo(() => normalizeQuizSettings(block.settings), [block.settings])
-  const hasVisualAlternatives = useMemo(
-    () => content.options.some((option) => hasRenderableImage(option.image)),
-    [content.options],
-  )
   const [selectedOptionId, setSelectedOptionId] = useState('')
+  const [openAnswer, setOpenAnswer] = useState('')
   const [attemptStatus, setAttemptStatus] = useState<AttemptStatus>('idle')
   const [isLockedAfterCheck, setIsLockedAfterCheck] = useState(false)
   const [isReaderMode, setIsReaderMode] = useState(false)
+  const [interactiveStatus, setInteractiveStatus] = useState<InteractiveResponseStatus | null>(null)
+  const [interactiveController, setInteractiveController] = useState<InteractiveResponseController | null>(null)
   const rootRef = useRef<HTMLElement | null>(null)
   const feedbackId = useId()
   const groupName = `quiz-${block.id}`
   const questionAttachment =
-    content.questionBlockId && renderQuizAttachment ? renderQuizAttachment(content.questionBlockId) : null
+    content.promptBlockId && renderQuizAttachment ? renderQuizAttachment(content.promptBlockId) : null
   const shouldShowQuizDropZones = !isReaderMode
 
-  useEffect(() => {
-    setSelectedOptionId('')
-    setAttemptStatus('idle')
-    setIsLockedAfterCheck(false)
-  }, [content.correctOptionId, content.options, content.question, content.questionImage])
+  const handleInteractiveController = useCallback((controller: InteractiveResponseController | null) => {
+    setInteractiveController(controller)
+  }, [])
+
+  const handleInteractiveStatus = useCallback((status: InteractiveResponseStatus) => {
+    setInteractiveStatus(status)
+  }, [])
+
+  const interactiveResponse = content.responseBlockId && renderInteractiveResponse
+    ? renderInteractiveResponse(content.responseBlockId, {
+        locked: attemptStatus !== 'idle',
+        onControllerReady: handleInteractiveController,
+        onStatusChange: handleInteractiveStatus,
+      })
+    : null
 
   useEffect(() => {
     setIsReaderMode(Boolean(rootRef.current?.closest('.reader-book')))
@@ -137,27 +140,39 @@ export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProp
     setIsLockedAfterCheck(false)
   }
 
+  function submitInteractiveResponse() {
+    if (!interactiveStatus?.canSubmit || attemptStatus !== 'idle') {
+      return
+    }
+
+    const result = interactiveController?.evaluate()
+    if (!result?.isComplete) {
+      return
+    }
+
+    setAttemptStatus(result.isCorrect ? 'correct' : 'incorrect')
+  }
+
+  function retryInteractiveResponse() {
+    interactiveController?.reset()
+    setAttemptStatus('idle')
+  }
+
   return (
     <section ref={rootRef} className="quiz-block" aria-labelledby={`quiz-question-${block.id}`}>
       <fieldset className="quiz-fieldset">
         <legend id={`quiz-question-${block.id}`} className="quiz-question">
-          {content.question || 'Pergunta sem texto'}
+          {content.prompt || 'Enunciado sem texto'}
         </legend>
-
-        <QuizImagePreview
-          image={content.questionImage}
-          fallbackAlt="Imagem da pergunta"
-          className={`quiz-question-image quiz-question-image-size-${settings.questionImageSize}`}
-        />
 
         {shouldShowQuizDropZones ? (
           <QuizAttachmentDropZone
             dropId={createQuestionSlotDropId(block.id)}
-            title="Slot de recurso da pergunta"
-            currentBlockId={content.questionBlockId}
+            title="Slot de recurso do enunciado"
+            currentBlockId={content.promptBlockId}
           >
-            {questionAttachment && content.questionBlockId ? (
-              <QuizAttachmentDraggable blockId={content.questionBlockId} canAttachToQuiz>
+            {questionAttachment && content.promptBlockId ? (
+              <QuizAttachmentDraggable blockId={content.promptBlockId} canAttachToQuiz>
                 {questionAttachment}
               </QuizAttachmentDraggable>
             ) : null}
@@ -166,7 +181,7 @@ export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProp
           <div className="quiz-attachment-slot">{questionAttachment}</div>
         ) : null}
 
-        <div className={hasVisualAlternatives ? 'quiz-options has-images' : 'quiz-options'}>
+        {content.questionType === 'multiple-choice' ? <div className="quiz-options">
           {content.options.map((option, index) => (
             <div key={option.id} className="quiz-option-with-attachment">
               {shouldShowQuizDropZones ? (
@@ -193,8 +208,6 @@ export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProp
                 blockId={block.id}
                 option={option}
                 index={index}
-                optionImageSize={settings.optionImageSize}
-                optionImageFit={settings.optionImageFit}
                 groupName={groupName}
                 selectedOptionId={selectedOptionId}
                 isReaderMode={isReaderMode}
@@ -203,10 +216,27 @@ export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProp
               />
             </div>
           ))}
-        </div>
+        </div> : null}
+
+        {content.questionType === 'open-response' ? (
+          <textarea
+            className="text-area quiz-open-response"
+            rows={4}
+            value={openAnswer}
+            maxLength={content.openResponseConfig.maxLength}
+            placeholder={content.openResponseConfig.placeholder}
+            disabled={!isReaderMode}
+            onChange={(event) => setOpenAnswer(event.target.value)}
+            aria-label="Resposta aberta"
+          />
+        ) : null}
+
+        {content.questionType === 'interactive-response' && interactiveResponse ? (
+          <div className="quiz-attachment-slot quiz-interactive-response">{interactiveResponse}</div>
+        ) : null}
       </fieldset>
 
-      {isReaderMode ? (
+      {isReaderMode && content.questionType === 'multiple-choice' ? (
         <div className="quiz-actions">
           <button type="button" className="mode-button" onClick={verifyAnswer} disabled={!canVerify}>
             Verificar resposta
@@ -215,9 +245,34 @@ export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProp
             Tentar novamente
           </button>
         </div>
-      ) : (
-        <p className="field-help">No modo Editar, esta area mostra apenas a previa do quiz.</p>
-      )}
+      ) : !isReaderMode ? (
+        <p className="field-help">No modo Editar, esta área mostra apenas a prévia da questão.</p>
+      ) : content.questionType === 'open-response' ? (
+        <p className="field-help">A resposta fica apenas nesta sessão de leitura.</p>
+      ) : content.questionType === 'interactive-response' && interactiveResponse ? (
+        <div className="quiz-interactive-submit">
+          {attemptStatus === 'idle' ? (
+            <button
+              type="button"
+              className="mode-button"
+              onClick={submitInteractiveResponse}
+              disabled={!interactiveStatus?.canSubmit}
+            >
+              Enviar resposta
+            </button>
+          ) : null}
+          {attemptStatus === 'incorrect' ? (
+            <button type="button" className="mode-button" onClick={retryInteractiveResponse}>
+              Tentar novamente
+            </button>
+          ) : null}
+          {attemptStatus === 'idle' && interactiveStatus?.message ? (
+            <p className="field-help">{interactiveStatus.message}</p>
+          ) : null}
+        </div>
+      ) : content.questionType === 'interactive-response' ? (
+        <p className="field-help">Esta questão ainda não possui um componente de resposta válido.</p>
+      ) : null}
 
       <p
         id={feedbackId}
@@ -231,7 +286,13 @@ export function QuizBlockView({ block, renderQuizAttachment }: QuizBlockViewProp
         role="status"
         aria-live="polite"
       >
-        {feedbackText}
+        {content.questionType === 'multiple-choice'
+          ? feedbackText
+          : content.questionType === 'interactive-response' && attemptStatus === 'correct'
+            ? content.successFeedback.trim() || 'Resposta correta.'
+            : content.questionType === 'interactive-response' && attemptStatus === 'incorrect'
+              ? content.errorFeedback.trim() || 'Resposta incorreta. Tente novamente.'
+              : ''}
       </p>
     </section>
   )

@@ -616,6 +616,53 @@ Exemplos:
 
 ---
 
+
+
+## 17A. Contextos da aplicação
+
+O projeto possui **dois contextos completamente distintos** e toda nova funcionalidade deve respeitar essa separação.
+
+### Modo Editar (Professor)
+
+Corresponde ao editor de livros.
+
+Neste modo:
+
+- todo o conteúdo é editável;
+- o professor cria o material;
+- o professor define a resposta esperada;
+- o professor configura como o estudante poderá interagir;
+- nunca existe resposta do estudante.
+
+### Modo Visualizar (Aluno)
+
+Corresponde ao livro publicado.
+
+Neste modo:
+
+- o conteúdo autoral nunca é alterado;
+- apenas as interações configuradas pelo professor ficam disponíveis;
+- a resposta do estudante existe apenas durante a execução da atividade;
+- essa resposta nunca modifica o conteúdo criado pelo professor.
+
+### Camadas de um componente
+
+Todo componente interativo deve separar claramente:
+
+Conteúdo autoral (persistente)
+↓
+Configuração pedagógica (persistente)
+↓
+Resposta do estudante (temporária)
+
+Exemplos:
+
+- Conteúdo autoral: notas destacadas do Piano, texto do Quiz, imagens e configurações visuais.
+- Configuração pedagógica: tipo de interação, limites de seleção, resposta esperada e papel do componente.
+- Resposta do estudante: notas selecionadas, alternativa marcada e marcações temporárias na Pauta.
+
+Essa separação é obrigatória para todos os componentes atuais e futuros.
+
 ## 18. Regras de segurança arquitetural
 
 - Não alterar o editor central para adicionar um novo bloco.
