@@ -6,6 +6,7 @@ import {
   type PianoFirstNote,
 } from '../../../music/piano'
 import { normalizeNoteId } from '../../../music/notes'
+import type { MusicLearnerInteraction } from '../music'
 
 export const PIANO_BLOCK_TYPE = 'piano' as const
 
@@ -105,6 +106,34 @@ export function normalizePianoSettings(value: unknown): NormalizedPianoBlockSett
     expectedNoteIds: Array.from(new Set(expectedNoteIds)),
     comparisonMode: raw.comparisonMode === 'exact' ? 'exact' : DEFAULT_PIANO_SETTINGS.comparisonMode,
   }
+}
+
+export function getPianoLearnerInteraction(value: unknown): MusicLearnerInteraction {
+  const settings = normalizePianoSettings(value)
+
+  if (settings.learnerRole === 'response' && settings.interactionMode === 'select-notes') {
+    return 'interactive-response'
+  }
+
+  if (settings.learnerRole === 'support' && settings.interactionMode === 'explore') {
+    return 'free-exploration'
+  }
+
+  return 'disabled'
+}
+
+export function mapLearnerInteractionToPianoSettings(
+  interaction: MusicLearnerInteraction,
+): Pick<NormalizedPianoBlockSettings, 'learnerRole' | 'interactionMode'> {
+  if (interaction === 'interactive-response') {
+    return { learnerRole: 'response', interactionMode: 'select-notes' }
+  }
+
+  if (interaction === 'free-exploration') {
+    return { learnerRole: 'support', interactionMode: 'explore' }
+  }
+
+  return { learnerRole: 'stimulus', interactionMode: 'static' }
 }
 
 export function normalizePianoContent(value: unknown): NormalizedPianoBlockContent {

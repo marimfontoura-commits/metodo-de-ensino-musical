@@ -8,6 +8,7 @@ import {
 } from '../components/blocks/QuizBlock'
 import { hasRenderableImage } from '../components/blocks/imageSource'
 import type { ContentWidth } from '../models/layoutOptions'
+import { STAFF_BLOCK_TYPE, normalizeStaffContent } from '../components/blocks/StaffBlock/types'
 
 const STORAGE_KEY = 'interactive-book-editor:v1'
 
@@ -22,7 +23,23 @@ export function loadBook(): Book | null {
   }
 
   try {
-    return JSON.parse(rawValue) as Book
+    const book = JSON.parse(rawValue) as Book
+    let changed = false
+    const blocks = book.blocks.map((block) => {
+      if (block.type !== STAFF_BLOCK_TYPE) {
+        return block
+      }
+
+      const content = normalizeStaffContent(block.content)
+      if (JSON.stringify(content) === JSON.stringify(block.content)) {
+        return block
+      }
+
+      changed = true
+      return { ...block, content }
+    })
+
+    return changed ? { ...book, blocks } : book
   } catch {
     return null
   }

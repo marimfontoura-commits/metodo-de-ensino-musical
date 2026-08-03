@@ -3,6 +3,7 @@ import { clampPianoOctaveCount } from '../../../music/piano'
 import {
   normalizePianoContent,
   normalizePianoSettings,
+  mapLearnerInteractionToPianoSettings,
   type PianoBlockData,
   type PianoInteractionMode,
 } from './types'
@@ -44,8 +45,9 @@ export function PianoBlockProperties({ block, onChange }: PianoBlockPropertiesPr
 
   function updateInteractionMode(interactionMode: PianoInteractionMode) {
     lastInteractiveModeRef.current = interactionMode
-    const learnerRole = interactionMode === 'select-notes' ? 'response' : 'support'
-    updateSettings({ learnerRole, interactionMode })
+    updateSettings(mapLearnerInteractionToPianoSettings(
+      interactionMode === 'select-notes' ? 'interactive-response' : 'free-exploration',
+    ))
   }
 
   function toggleLearnerInteraction(enabled: boolean) {
@@ -53,7 +55,7 @@ export function PianoBlockProperties({ block, onChange }: PianoBlockPropertiesPr
       if (settings.interactionMode !== 'static') {
         lastInteractiveModeRef.current = settings.interactionMode
       }
-      updateSettings({ learnerRole: 'stimulus', interactionMode: 'static' })
+      updateSettings(mapLearnerInteractionToPianoSettings('disabled'))
       return
     }
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { BookBlock } from '../../../models/book'
-import type { QuizAttachableBlockOption, QuizAttachmentTarget } from '../types'
+import type { QuizAttachableBlockOption, QuizAttachmentEditorSize, QuizAttachmentTarget } from '../types'
 import { ModalDialog } from '../../editor/ModalDialog'
 
 interface QuizResourceSlotProps {
@@ -14,6 +14,7 @@ interface QuizResourceSlotProps {
   attachableOptions: QuizAttachableBlockOption[]
   renderAttachment: (blockId: string) => ReactElement | null
   renderAttachmentEditor: (block: BookBlock, onChange: (next: BookBlock) => void) => ReactElement | null
+  getAttachmentEditorSize: (block: BookBlock) => QuizAttachmentEditorSize
   onCreate: (type: string, target: QuizAttachmentTarget) => BookBlock | null
   onUpdate: (blockId: string, next: BookBlock) => void
   onMoveToRoot: (blockId: string, quizBlockId: string) => void
@@ -29,6 +30,7 @@ export function QuizResourceSlot({
   attachableOptions,
   renderAttachment,
   renderAttachmentEditor,
+  getAttachmentEditorSize,
   onCreate,
   onUpdate,
   onMoveToRoot,
@@ -97,13 +99,14 @@ export function QuizResourceSlot({
           className="ghost-button"
           onClick={() => onMoveToRoot(attachedBlock.id, target.quizBlockId)}
         >
-          Mover para fora
+          Colocar no livro
         </button>
       </div>
       <ModalDialog
         isOpen={Boolean(latestEditingBlock)}
         title={`Editar recurso de ${label}`}
         onClose={() => setEditingBlock(null)}
+        size={latestEditingBlock ? getAttachmentEditorSize(latestEditingBlock) : 'default'}
       >
         <div className="quiz-modal-header">
           <h3 className="quiz-modal-title">Editar recurso</h3>

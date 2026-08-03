@@ -51,10 +51,12 @@ export function PianoBlockPresentation({
   )
   const responseController = useMemo<InteractiveResponseController>(
     () => ({
+      hasResponse: () => responseStatus.hasResponse,
+      getStatus: () => responseStatus,
       evaluate: () => evaluatePianoInteractiveResponse(settings, answer),
       reset: () => setAnswer({ selectedNoteIds: [] }),
     }),
-    [answer, settings],
+    [answer, responseStatus, settings],
   )
 
   useEffect(() => {

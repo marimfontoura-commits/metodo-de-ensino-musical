@@ -7,6 +7,7 @@ interface ModalDialogProps {
   title: string
   onClose: () => void
   children: ReactNode
+  size?: 'default' | 'wide'
 }
 
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
@@ -24,7 +25,7 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
   )
 }
 
-export function ModalDialog({ isOpen, title, onClose, children }: ModalDialogProps) {
+export function ModalDialog({ isOpen, title, onClose, children, size = 'default' }: ModalDialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previousFocusedRef = useRef<HTMLElement | null>(null)
   const onCloseRef = useRef(onClose)
@@ -110,7 +111,7 @@ export function ModalDialog({ isOpen, title, onClose, children }: ModalDialogPro
       }}
     >
       <div
-        className="modal-dialog"
+        className={`modal-dialog${size === 'wide' ? ' modal-dialog-wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

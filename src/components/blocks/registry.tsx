@@ -40,10 +40,21 @@ import {
   PianoBlockQuizAttachment,
   PianoBlockQuizAttachmentEdit,
   PianoBlockInteractiveResponse,
+  getPianoExpectedAnswerState,
+  getPianoInteractiveResourceReadiness,
   isPianoInteractiveResponseValid,
   PianoBlockView,
   createPianoBlock,
 } from './PianoBlock'
+import {
+  STAFF_BLOCK_TYPE,
+  StaffBlockEdit,
+  StaffBlockProperties,
+  StaffBlockQuizAttachment,
+  StaffBlockQuizAttachmentEdit,
+  StaffBlockView,
+  createStaffBlock,
+} from './StaffBlock'
 
 function castEdit<T extends BookBlock>(
   Component: (props: {
@@ -52,6 +63,7 @@ function castEdit<T extends BookBlock>(
     allBlocks?: BookBlock[]
     renderQuizAttachment?: (blockId: string) => ReactElement | null
     renderQuizAttachmentEditor?: BlockEditComponentProps['renderQuizAttachmentEditor']
+    getQuizAttachmentEditorSize?: BlockEditComponentProps['getQuizAttachmentEditorSize']
     quizAttachableBlockOptions?: BlockEditComponentProps['quizAttachableBlockOptions']
     interactiveResponseBlockOptions?: BlockEditComponentProps['interactiveResponseBlockOptions']
     onCreateQuizAttachment?: BlockEditComponentProps['onCreateQuizAttachment']
@@ -65,6 +77,7 @@ function castEdit<T extends BookBlock>(
     allBlocks,
     renderQuizAttachment,
     renderQuizAttachmentEditor,
+    getQuizAttachmentEditorSize,
     quizAttachableBlockOptions,
     interactiveResponseBlockOptions,
     onCreateQuizAttachment,
@@ -77,6 +90,7 @@ function castEdit<T extends BookBlock>(
       allBlocks={allBlocks}
       renderQuizAttachment={renderQuizAttachment}
       renderQuizAttachmentEditor={renderQuizAttachmentEditor}
+      getQuizAttachmentEditorSize={getQuizAttachmentEditorSize}
       quizAttachableBlockOptions={quizAttachableBlockOptions}
       interactiveResponseBlockOptions={interactiveResponseBlockOptions}
       onCreateQuizAttachment={onCreateQuizAttachment}
@@ -184,16 +198,43 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
       canAttachToQuiz: true,
       canAttachToQuestion: true,
       canBeInteractiveResponse: true,
+      supportsPlayback: false,
       isLeafContentOnly: true,
     },
     QuizAttachmentComponent: castQuizAttachment(PianoBlockQuizAttachment),
     QuizAttachmentEditComponent: castEdit(PianoBlockQuizAttachmentEdit),
     InteractiveResponseComponent: PianoBlockInteractiveResponse,
     isInteractiveResponseValid: isPianoInteractiveResponseValid,
+    interactiveMusicResource: {
+      getReadiness: getPianoInteractiveResourceReadiness,
+      getExpectedAnswerState: getPianoExpectedAnswerState,
+      supportsPlayback: false,
+    },
     InlineEditComponent: castEdit(PianoBlockEdit),
     PropertiesComponent: castEdit(PianoBlockProperties),
     ViewComponent: castView(PianoBlockView),
     create: () => createPianoBlock(),
+  },
+  {
+    id: STAFF_BLOCK_TYPE,
+    name: 'Pauta',
+    icon: 'Pt',
+    capabilities: {
+      embeddable: true,
+      embedMode: 'static',
+      canAttachToQuiz: true,
+      canAttachToQuestion: true,
+      canBeInteractiveResponse: false,
+      supportsPlayback: false,
+      isLeafContentOnly: true,
+    },
+    QuizAttachmentComponent: castQuizAttachment(StaffBlockQuizAttachment),
+    QuizAttachmentEditComponent: castEdit(StaffBlockQuizAttachmentEdit),
+    quizAttachmentEditorSize: 'wide',
+    InlineEditComponent: castEdit(StaffBlockEdit),
+    PropertiesComponent: castEdit(StaffBlockProperties),
+    ViewComponent: castView(StaffBlockView),
+    create: () => createStaffBlock(),
   },
 ]
 
@@ -265,6 +306,10 @@ function createQuizAttachmentEditorRenderer() {
     const Component = definition.QuizAttachmentEditComponent
     return <Component block={block} onChange={onChange} />
   }
+}
+
+function createQuizAttachmentEditorSizeResolver() {
+  return (block: BookBlock) => getBlockDefinition(block.type)?.quizAttachmentEditorSize ?? 'default'
 }
 
 function resolveQuizAttachableBlock(blockId: string, allBlocks?: BookBlock[]): BookBlock | undefined {
@@ -359,6 +404,7 @@ export function BlockInlineEditRenderer({
       allBlocks={allBlocks}
       renderQuizAttachment={createQuizAttachmentRenderer(allBlocks)}
       renderQuizAttachmentEditor={createQuizAttachmentEditorRenderer()}
+      getQuizAttachmentEditorSize={createQuizAttachmentEditorSizeResolver()}
       quizAttachableBlockOptions={getQuizAttachableBlockOptions()}
       interactiveResponseBlockOptions={getInteractiveResponseBlockOptions()}
       onCreateQuizAttachment={onCreateQuizAttachment}

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { createId } from '../../../services/idService'
 import type { BookBlock } from '../../../models/book'
-import type { QuizAttachableBlockOption, QuizAttachmentTarget } from '../types'
+import type { QuizAttachableBlockOption, QuizAttachmentEditorSize, QuizAttachmentTarget } from '../types'
 import {
   QUIZ_LIMITS,
   normalizeQuizContent,
@@ -19,6 +19,7 @@ interface QuizBlockEditProps {
   onChange: (next: QuizBlockData) => void
   renderQuizAttachment?: (blockId: string) => ReactElement | null
   renderQuizAttachmentEditor?: (block: BookBlock, onChange: (next: BookBlock) => void) => ReactElement | null
+  getQuizAttachmentEditorSize?: (block: BookBlock) => QuizAttachmentEditorSize
   quizAttachableBlockOptions?: QuizAttachableBlockOption[]
   interactiveResponseBlockOptions?: QuizAttachableBlockOption[]
   allBlocks?: BookBlock[]
@@ -32,6 +33,7 @@ export function QuizBlockEdit({
   onChange,
   renderQuizAttachment,
   renderQuizAttachmentEditor,
+  getQuizAttachmentEditorSize,
   quizAttachableBlockOptions = [],
   interactiveResponseBlockOptions = [],
   allBlocks = [],
@@ -147,6 +149,7 @@ export function QuizBlockEdit({
   const canManageResources = Boolean(
     renderQuizAttachment &&
     renderQuizAttachmentEditor &&
+    getQuizAttachmentEditorSize &&
     onCreateQuizAttachment &&
     onUpdateQuizAttachment &&
     onMoveQuizAttachmentToRoot,
@@ -174,6 +177,7 @@ export function QuizBlockEdit({
           attachableOptions={quizAttachableBlockOptions}
           renderAttachment={renderQuizAttachment!}
           renderAttachmentEditor={renderQuizAttachmentEditor!}
+          getAttachmentEditorSize={getQuizAttachmentEditorSize!}
           onCreate={onCreateQuizAttachment!}
           onUpdate={onUpdateQuizAttachment!}
           onMoveToRoot={onMoveQuizAttachmentToRoot!}
@@ -210,6 +214,7 @@ export function QuizBlockEdit({
                   attachableOptions={quizAttachableBlockOptions}
                   renderAttachment={renderQuizAttachment!}
                   renderAttachmentEditor={renderQuizAttachmentEditor!}
+                  getAttachmentEditorSize={getQuizAttachmentEditorSize!}
                   onCreate={onCreateQuizAttachment!}
                   onUpdate={onUpdateQuizAttachment!}
                   onMoveToRoot={onMoveQuizAttachmentToRoot!}
@@ -346,6 +351,7 @@ export function QuizBlockEdit({
           pickerTitle="Adicionar componente de resposta"
           renderAttachment={renderQuizAttachment!}
           renderAttachmentEditor={renderQuizAttachmentEditor!}
+          getAttachmentEditorSize={getQuizAttachmentEditorSize!}
           onCreate={onCreateQuizAttachment!}
           onUpdate={onUpdateQuizAttachment!}
           onMoveToRoot={onMoveQuizAttachmentToRoot!}
